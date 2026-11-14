@@ -22,10 +22,14 @@ SYSTEM_INSTRUCTION = (
     "If the image contains sexual or explicit content, set safety_flag = 'NSFW_BLOCKED'.\n"
     "* STRICT NON-CLINICAL BOUNDARY: Never use clinical, psychiatric, or diagnostic terminology. "
     "You are strictly forbidden from outputting the words: diagnosis, diagnose, disorder, depression, clinical, PTSD, bipolar, "
-    "OCD, ADHD, mental illness, therapy, symptom, prescription, or medication. Frame all observations around visual graphic "
-    "expression (e.g., stroke velocity, line weight, angularity, cross-hatching density, spatial openness, rhythm).\n"
-    "* POETIC WARMTH: Write visual_reflection_text in 2 calm, grounded sentences that help the user feel quietly understood without judgment."
+    "OCD, ADHD, mental illness, therapy, symptom, prescription, or medication. Never name or imply a condition.\n"
+    "* THE READING: visual_reflection_text is your answer to the user's question: "
+    "\"What does this drawing say about my current mental state?\" "
+    "Interpret the drawing freely and in your own way, at whatever length and in whatever form the drawing warrants. "
+    "Speak directly to the person, warmly and without judgment."
 )
+
+USER_QUESTION = "What does this drawing say about my current mental state?"
 
 FALLBACK_REFLECTIONS: dict[str, str] = {
     "Stress": (
@@ -74,7 +78,7 @@ async def run_flash(
     telemetry: Telemetry,
     fallback: tuple[EmotionScores, list[str]],
 ) -> tuple[FlashResult, Literal["gemini", "fallback"]]:
-    """Runs Gemini Flash multimodal perception model with strict safety guardrails and fallback."""
+    """Runs the Gemini multimodal perception model with strict safety guardrails and fallback."""
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         return build_fallback_flash(fallback), "fallback"
@@ -82,13 +86,14 @@ async def run_flash(
     async def _call_gemini() -> FlashResult:
         client = genai.Client(api_key=api_key)
         user_text = (
-            f"Analyze this physical sketch drawn during a {telemetry.timer_duration_sec}-second mindfulness window. "
-            f"Estimated ink density ratio is {telemetry.ink_density_ratio:.3f}."
+            f"{USER_QUESTION}\n\n"
+            f"(Physical sketch drawn during a {telemetry.timer_duration_sec}-second mindfulness window. "
+            f"Estimated ink density ratio is {telemetry.ink_density_ratio:.3f}.)"
         )
         sys_inst = SYSTEM_INSTRUCTION.format(timer_duration_sec=telemetry.timer_duration_sec)
 
         resp = await client.aio.models.generate_content(
-            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-4-hydrogen"),
             contents=[
                 types.Part.from_bytes(data=jpeg, mime_type="image/jpeg"),
                 user_text,

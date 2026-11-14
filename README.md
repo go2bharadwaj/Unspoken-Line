@@ -9,7 +9,7 @@ A privacy-first, non-verbal mindfulness progressive web application (PWA). The u
 ## Architecture & Technology Stack
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS 3, Framer Motion, Recharts.
-- **Backend:** Python 3.12, FastAPI, Uvicorn, Pillow, NumPy, HTTPX, `google-genai` (Gemini 3.8 Flash), Jev API integration.
+- **Backend:** Python 3.12, FastAPI, Uvicorn, Pillow, NumPy, HTTPX, `google-genai` (`gemini-4-hydrogen`), Jev API integration.
 - **Storage & Identity:** Firebase Authentication (Google Sign-In) and Cloud Firestore (with zero-persistence Guest Sanctuary fallback).
 - **Safety & Privacy:** 3-layer safety architecture (deterministic input gate, multimodal crisis/injection triage, clinical terminology scrubber) and zero disk or log persistence of user imagery.
 
@@ -39,8 +39,8 @@ cp backend/.env.example backend/.env && ./start_dev.sh
 
 | Variable | Default | Description |
 |---|---|---|
-| `GEMINI_API_KEY` | *(empty)* | Google GenAI API key for Gemini 3.8 Flash vision perception. When omitted, deterministic stroke heuristics are used. |
-| `GEMINI_MODEL` | `gemini-3.8-flash` | Gemini model identifier used for multimodal sketch reflection. |
+| `GEMINI_API_KEY` | *(empty)* | Google GenAI API key for Gemini (`gemini-4-hydrogen`) vision perception. When omitted, deterministic stroke heuristics are used. |
+| `GEMINI_MODEL` | `gemini-4-hydrogen` | Gemini model identifier used for multimodal sketch reflection. |
 | `JEV_API_KEY` | *(empty)* | API key for calibrated Jev emotion scoring service. When omitted, deterministic calibration fallback is used. |
 | `JEV_API_URL` | *(empty)* | REST endpoint for the Jev service. |
 | `JEV_MODEL` | `jev-latest` | Model identifier for Jev service. |

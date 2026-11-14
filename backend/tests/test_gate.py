@@ -249,6 +249,8 @@ def test_analyze_endpoint_fallback_without_api_keys(monkeypatch):
     assert set(merged.keys()) == {"stress", "anxiety", "mental_fatigue", "calm_flow", "radiant_joy"}
     for v in merged.values():
         assert 0.0 <= v <= 1.0
+    # Jev off: shown scores are Gemini's (here its fallback), not blended with the Jev placeholder
+    assert merged == data["flash_scores"]
 
     # 3 activities recommended
     assert len(data["recommended_activities"]) == 3

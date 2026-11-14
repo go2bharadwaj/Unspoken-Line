@@ -31,7 +31,7 @@ No neon gradients, no pure white, no heavy drop shadows, no emojis, no generic S
 1. **Drawing ritual.** Copy: "Take a pen and paper. Let your hand move without speaking." Duration pills: 5s, 10s, 30s (default), 60s. "Begin Drawing" → 3s "Pen to paper..." pause → countdown shown only as a breathing orb (sunlitAmber/peachTerracotta) that slowly fills the screen; no ticking digits. At 0: WebAudio singing-bowl chime, auto-advance to capture.
 2. **Capture.** "Photograph Your Sketch" = `<input type="file" accept="image/*" capture="environment">`; on desktop also a getUserMedia webcam modal. "Select Existing Photo" = plain file picker. Resize on an offscreen canvas to max 1024px, JPEG, send raw base64 (no `data:` prefix).
 3. **Backend input gate** (Pillow + NumPy, RAM only, see §5 Layer 1).
-4. **Parallel AI** via `asyncio.gather`: Gemini (`gemini-3.8-flash`, JSON schema output) and Jev (`jev-latest`, httpx). Each falls back to deterministic stroke math when its key is missing or the call fails, so the demo never crashes.
+4. **Parallel AI** via `asyncio.gather`: Gemini (`gemini-4-hydrogen`, JSON schema output) and Jev (`jev-latest`, httpx). Each falls back to deterministic stroke math when its key is missing or the call fails, so the demo never crashes.
 5. **Merger.** Crisis from either branch → CRISIS_SUPPORT (988 Lifeline). Otherwise `merged = 0.55 * jev + 0.45 * flash` per class.
 6. **Results.** Reflection text card, merged score breakdown, 3 activity pills for the primary class, "Learn more" drawer (stroke evidence bullets + why it mapped), activity player modal.
 7. **Progression.** Multi-line chart (Stress, Anxiety, Calm Flow) across the user's real sessions up to Today (no demo data). Trend text card under it.

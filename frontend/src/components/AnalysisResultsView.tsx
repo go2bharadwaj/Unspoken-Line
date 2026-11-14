@@ -50,19 +50,12 @@ export const AnalysisResultsView: React.FC<Props> = ({
   const learnMoreDescription =
     LEARN_MORE[primaryClass] || LEARN_MORE['Calm Flow'];
 
-  const clarityPercent = Math.round((result.confidence ?? 0.85) * 100);
-
-  const flashSources = result.analysis_sources;
-  const isFallback =
-    flashSources?.flash === 'fallback' || flashSources?.jev === 'fallback';
+  // Jev is off, so Gemini is the only model; when it fails, scores come from stroke measurements
+  const geminiAnswered = result.analysis_sources?.flash === 'gemini';
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 flex flex-col gap-6 text-left">
-      {/* Top Tag & Done button */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-widest text-warmUmber">
-          Non-verbal Impression
-        </span>
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={onDone}
@@ -72,35 +65,51 @@ export const AnalysisResultsView: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* Visual Reflection Text Card */}
+      {/* Gemini's free-form reading of the drawing */}
       {result.visual_reflection_text && (
-        <div className="rounded-3xl border border-borderHairline bg-canvasPaper p-6 sm:p-8">
-          <span className="text-xs uppercase tracking-widest text-peachTerracotta font-medium mb-2 block">
-            Visual Reflection
-          </span>
-          <p className="font-serif text-2xl sm:text-3xl text-espressoInk font-medium leading-relaxed tracking-tight">
-            “{result.visual_reflection_text}”
-          </p>
-        </div>
+        <section className="rounded-3xl border border-borderHairline bg-canvasPaper p-6 sm:p-8">
+          <h2 className="font-serif text-2xl sm:text-3xl font-medium text-espressoInk tracking-tight leading-snug mb-4">
+            What does this drawing say about my current mental state?
+          </h2>
+          {/* Free-form text: keep the model's paragraph breaks */}
+          <div className="flex flex-col gap-3 text-base text-espressoInk/90 leading-relaxed">
+            {result.visual_reflection_text
+              .split(/\n\s*\n/)
+              .map((para, i) => (
+                <p key={i} className="whitespace-pre-line">
+                  {para.trim()}
+                </p>
+              ))}
+          </div>
+        </section>
       )}
 
-      {/* Primary Class & Score Breakdown Card */}
-      <div className="rounded-3xl border border-borderHairline bg-canvasPaper p-6 sm:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-6 pb-4 border-b border-borderHairline">
-          <div>
-            <span className="text-xs uppercase tracking-widest text-warmUmber">
-              Primary Characteristic
-            </span>
-            <h3 className="font-serif text-3xl font-medium text-espressoInk tracking-tight mt-0.5">
-              {primaryClass}
-            </h3>
-          </div>
-          <div className="text-xs text-warmUmber flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-sageCalm" />
-            Reading clarity: {clarityPercent}%
-          </div>
+      {/* Recommended practices: small squares side by side */}
+      <section>
+        <h3 className="text-xs uppercase tracking-widest text-warmUmber mb-3">
+          Three Practices for {primaryClass}
+        </h3>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {activities.slice(0, 3).map((act) => (
+            <button
+              key={act.id}
+              type="button"
+              onClick={() => onOpenActivity(act)}
+              className="aspect-square p-2.5 sm:p-4 rounded-2xl border border-borderHairline bg-turmericMist/20 hover:bg-turmericMist/50 text-left transition-colors flex flex-col justify-between cursor-pointer group"
+            >
+              <span className="font-serif text-sm sm:text-lg leading-tight font-medium text-espressoInk group-hover:text-peachTerracotta transition-colors">
+                {act.title}
+              </span>
+              <span className="text-[11px] sm:text-xs text-warmUmber">
+                {act.duration_sec}s
+              </span>
+            </button>
+          ))}
         </div>
+      </section>
 
+      {/* Emotion scores */}
+      <div className="rounded-3xl border border-borderHairline bg-canvasPaper p-6 sm:p-8">
         {/* 5 Horizontal Hairline Bars */}
         <div className="flex flex-col gap-4">
           {SCORE_CONFIGS.map((cfg) => {
@@ -127,55 +136,6 @@ export const AnalysisResultsView: React.FC<Props> = ({
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Recommended Activity Pills */}
-      <div className="rounded-3xl border border-borderHairline bg-canvasPaper p-6 sm:p-8">
-        <span className="text-xs uppercase tracking-widest text-warmUmber mb-2 block">
-          Recommended Alignments
-        </span>
-        <h4 className="font-serif text-xl sm:text-2xl font-medium text-espressoInk tracking-tight mb-4">
-          Three Practices for {primaryClass}
-        </h4>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {activities.slice(0, 3).map((act, index) => (
-            <button
-              key={act.id}
-              type="button"
-              onClick={() => onOpenActivity(act)}
-              className="p-4 rounded-2xl border border-borderHairline bg-turmericMist/20 hover:bg-turmericMist/50 text-left transition-all flex flex-col justify-between cursor-pointer group"
-            >
-              <div className="flex items-center gap-1.5 mb-3 text-warmUmber">
-                {/* 3 small circles indicator */}
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    index === 0 ? 'bg-peachTerracotta' : 'border border-warmUmber/40'
-                  }`}
-                />
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    index === 1 ? 'bg-peachTerracotta' : 'border border-warmUmber/40'
-                  }`}
-                />
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    index === 2 ? 'bg-peachTerracotta' : 'border border-warmUmber/40'
-                  }`}
-                />
-              </div>
-
-              <div>
-                <h5 className="font-serif text-lg font-medium text-espressoInk tracking-tight group-hover:text-peachTerracotta transition-colors">
-                  {act.title}
-                </h5>
-                <p className="text-xs text-warmUmber mt-1">
-                  {act.duration_sec}s · Practice
-                </p>
-              </div>
-            </button>
-          ))}
         </div>
       </div>
 
@@ -245,56 +205,40 @@ export const AnalysisResultsView: React.FC<Props> = ({
                   </div>
                 )}
 
-              {/* Flash vs Jev Comparison Table */}
+              {/* Gemini calibration (Jev is off) */}
               <div>
                 <h5 className="text-xs uppercase tracking-widest text-warmUmber mb-3">
-                  Model Calibration (Flash vs Jev)
+                  Model Calibration (Gemini)
                 </h5>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead>
-                      <tr className="border-b border-borderHairline text-warmUmber">
-                        <th className="py-2 pr-4 font-normal">Metric</th>
-                        <th className="py-2 px-4 font-normal">Gemini Flash</th>
-                        <th className="py-2 px-4 font-normal">Jev Engine</th>
-                        <th className="py-2 pl-4 font-normal">Merged</th>
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-borderHairline text-warmUmber">
+                      <th className="py-2 pr-4 font-normal">Metric</th>
+                      <th className="py-2 pl-4 font-normal text-right">
+                        {geminiAnswered ? 'Gemini' : 'Stroke analysis'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-borderHairline/40">
+                    {SCORE_CONFIGS.map((cfg) => (
+                      <tr key={cfg.key} className="text-espressoInk">
+                        <td className="py-2 pr-4 font-medium">{cfg.label}</td>
+                        <td className="py-2 pl-4 font-mono text-right">
+                          {Math.round((result.flash_scores?.[cfg.key] ?? 0) * 100)}%
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-borderHairline/40">
-                      {SCORE_CONFIGS.map((cfg) => {
-                        const f = result.flash_scores?.[cfg.key] ?? 0;
-                        const j = result.jev_scores?.[cfg.key] ?? 0;
-                        const m = scores[cfg.key] ?? 0;
-
-                        return (
-                          <tr key={cfg.key} className="text-espressoInk">
-                            <td className="py-2 pr-4 font-medium">{cfg.label}</td>
-                            <td className="py-2 px-4 font-mono">
-                              {Math.round(f * 100)}%
-                            </td>
-                            <td className="py-2 px-4 font-mono">
-                              {Math.round(j * 100)}%
-                            </td>
-                            <td className="py-2 pl-4 font-mono font-medium">
-                              {Math.round(m * 100)}%
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
-              {/* Source Fallback Note */}
               <div className="pt-2 text-xs text-warmUmber border-t border-borderHairline/60">
-                {isFallback ? (
-                  <p>
-                    One or more vision sources operated in offline deterministic stroke-analysis fallback mode.
-                  </p>
+                {geminiAnswered ? (
+                  <p>Scored by Gemini from the photo of your sketch.</p>
                 ) : (
                   <p>
-                    Parallel AI evaluation active: Gemini 3.8 Flash + Jev dual calibration.
+                    Gemini was unavailable for this sketch, so the reading and scores come from
+                    stroke measurements instead.
                   </p>
                 )}
               </div>
