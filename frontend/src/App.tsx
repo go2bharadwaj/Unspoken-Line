@@ -98,9 +98,13 @@ export default function App() {
   const [scrolled, setScrolled] = useState<boolean>(false);
 
   useEffect(() => {
-    // Hysteresis (32px in, 8px out) so the hero collapse can't flip the state back
-    const onScroll = () =>
-      setScrolled((s) => (s ? window.scrollY > 8 : window.scrollY > 32));
+    // Logo leaves the hero once the snap toward section 2 is well under way (hysteresis: 40% in, 20% out)
+    const onScroll = () => {
+      const vh = window.innerHeight;
+      setScrolled((s) =>
+        s ? window.scrollY > vh * 0.2 : window.scrollY > vh * 0.4,
+      );
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -318,17 +322,8 @@ export default function App() {
               }}
               className="w-full flex flex-col items-center text-center px-6 pb-8"
             >
-              {/* Logo hero: fills the first screen, then collapses as the logo flies to the header */}
-              {/* Height = viewport minus the sticky header (h-12/14 + py-4), so the first screen is just logo + tagline */}
-              <motion.div
-                layout
-                transition={logoTransition}
-                className={`w-full flex flex-col items-center justify-center ${
-                  logoInHero
-                    ? "h-[calc(100svh-5rem)] sm:h-[calc(100svh-5.5rem)]"
-                    : "h-[8svh]"
-                }`}
-              >
+              {/* Section 1 of 3: logo. Height = viewport minus the sticky header (h-12/14 + py-4) */}
+              <section className="w-full snap-start flex flex-col items-center justify-center h-[calc(100svh-5rem)] sm:h-[calc(100svh-5.5rem)]">
                 {logoInHero && (
                   <>
                     <div className="flex-1 flex items-center justify-center">
@@ -349,105 +344,117 @@ export default function App() {
                     </motion.span>
                   </>
                 )}
-              </motion.div>
+              </section>
 
-              {/* Breathing Radial Wash Background */}
-              <div className="relative w-full max-w-lg flex items-center justify-center my-6">
-                <motion.div
-                  className="w-72 h-72 sm:w-88 sm:h-88 rounded-full pointer-events-none absolute"
-                  style={{
-                    background:
-                      "radial-gradient(circle, rgba(245, 230, 196, 0.7) 0%, rgba(232, 153, 122, 0.35) 60%, rgba(250, 246, 238, 0) 100%)",
-                  }}
-                  animate={{
-                    scale: shouldReduceMotion ? 1 : [0.92, 1.08, 0.92],
-                  }}
-                  transition={{
-                    duration: 6,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
+              {/* Section 2 of 3: the message, with the privacy promise pinned at the bottom */}
+              <section className="w-full snap-start scroll-mt-20 sm:scroll-mt-[5.5rem] min-h-[calc(100svh-5rem)] sm:min-h-[calc(100svh-5.5rem)] flex flex-col items-center">
+                <div className="flex-1 w-full flex items-center justify-center">
+                  {/* Breathing Radial Wash Background */}
+                  <div className="relative w-full max-w-lg flex items-center justify-center my-6">
+                    <motion.div
+                      className="w-72 h-72 sm:w-88 sm:h-88 rounded-full pointer-events-none absolute"
+                      style={{
+                        background:
+                          "radial-gradient(circle, rgba(245, 230, 196, 0.7) 0%, rgba(232, 153, 122, 0.35) 60%, rgba(250, 246, 238, 0) 100%)",
+                      }}
+                      animate={{
+                        scale: shouldReduceMotion ? 1 : [0.92, 1.08, 0.92],
+                      }}
+                      transition={{
+                        duration: 6,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    />
 
-                <div className="relative z-10 max-w-md py-12">
-                  {!logoInHero && (
-                    <motion.span
-                      layoutId="tagline"
-                      transition={logoTransition}
-                      className="text-xs uppercase tracking-widest text-warmUmber mb-3 block"
-                    >
-                      Pen on Paper · Silent Reflection
-                    </motion.span>
-                  )}
-                  <h2 className="font-serif text-3xl sm:text-5xl font-medium text-espressoInk tracking-tight leading-tight mb-4">
-                    A cognitive imprint on paper is not random.
-                  </h2>
-                  <p className="text-espressoInk/80 text-sm sm:text-base leading-relaxed mb-8 max-w-sm mx-auto">
-                    Take a pen and paper. In seconds of non-verbal drawing, your
-                    hand reveals what words keep silent.
-                  </p>
+                    <div className="relative z-10 max-w-md py-12">
+                      {!logoInHero && (
+                        <motion.span
+                          layoutId="tagline"
+                          transition={logoTransition}
+                          className="text-xs uppercase tracking-widest text-warmUmber mb-3 block"
+                        >
+                          Pen on Paper · Silent Reflection
+                        </motion.span>
+                      )}
+                      <h2 className="font-serif text-3xl sm:text-5xl font-medium text-espressoInk tracking-tight leading-tight mb-4">
+                        A cognitive imprint on paper is not random.
+                      </h2>
+                      <p className="text-espressoInk/80 text-sm sm:text-base leading-relaxed mb-8 max-w-sm mx-auto">
+                        Take a pen and paper. In seconds of non-verbal drawing,
+                        your hand reveals what words keep silent.
+                      </p>
 
-                  <button
-                    type="button"
-                    onClick={needsSignIn ? handleSignIn : handleBeginSession}
-                    className="px-8 py-4 rounded-full bg-peachTerracotta text-canvasPaper font-medium hover:bg-peachTerracotta/90 transition-colors shadow-none text-base cursor-pointer"
-                  >
-                    {needsSignIn ? "Sign in with Google" : "Begin Session"}
-                  </button>
-                  {needsSignIn && (
-                    <p
-                      role="status"
-                      className="mt-4 text-sm text-warmUmber max-w-xs mx-auto"
-                    >
-                      Sign in first so your sketches are saved to you. It takes
-                      just a few seconds with your Google account.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Privacy Badge */}
-              <div className="my-6 w-full">
-                <PrivacyBadge />
-              </div>
-
-              {/* Progression History Chart */}
-              <ProgressionChart sessions={sessions} />
-
-              {/* Clear History Inline Confirmation */}
-              <div className="my-8">
-                {confirmingClear ? (
-                  <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
-                    <span className="text-xs text-espressoInk">
-                      Clear all stored sessions? This cannot be undone.
-                    </span>
-                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={handleClearHistory}
-                        className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                        onClick={
+                          needsSignIn ? handleSignIn : handleBeginSession
+                        }
+                        className="px-8 py-4 rounded-full bg-peachTerracotta text-canvasPaper font-medium hover:bg-peachTerracotta/90 transition-colors shadow-none text-base cursor-pointer"
                       >
-                        Yes, clear history
+                        {needsSignIn ? "Sign in with Google" : "Begin Session"}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmingClear(false)}
-                        className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                      {needsSignIn && (
+                        <p
+                          role="status"
+                          className="mt-4 text-sm text-warmUmber max-w-xs mx-auto"
+                        >
+                          Sign in first so your sketches are saved to you. It
+                          takes just a few seconds with your Google account.
+                        </p>
+                      )}
                     </div>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingClear(true)}
-                    className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
-                  >
-                    Clear My History
-                  </button>
-                )}
-              </div>
+                </div>
+
+                {/* Privacy Badge */}
+                <div className="w-full pb-6">
+                  <PrivacyBadge />
+                </div>
+              </section>
+
+              {/* Section 3 of 3: history and the people behind it */}
+              <section className="w-full snap-start scroll-mt-20 sm:scroll-mt-[5.5rem] flex flex-col items-center">
+                {/* Progression History Chart */}
+                <ProgressionChart sessions={sessions} />
+
+                {/* Clear History Inline Confirmation */}
+                <div className="my-8">
+                  {confirmingClear ? (
+                    <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
+                      <span className="text-xs text-espressoInk">
+                        Clear all stored sessions? This cannot be undone.
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleClearHistory}
+                          className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                        >
+                          Yes, clear history
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingClear(false)}
+                          className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingClear(true)}
+                      className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
+                    >
+                      Clear My History
+                    </button>
+                  )}
+                </div>
+
+                <AboutCreators />
+              </section>
             </motion.div>
           )}
 
@@ -587,10 +594,8 @@ export default function App() {
         />
       )}
 
-      {view === "landing" && <AboutCreators />}
-
-      {/* Footer */}
-      <footer className="w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-warmUmber/60 border-t border-borderHairline/40">
+      {/* Footer (snap-end makes the page bottom a resting point under mandatory snap) */}
+      <footer className="snap-end w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-warmUmber/60 border-t border-borderHairline/40">
         Unspoken Line · Non-verbal mindfulness sanctuary · Privacy-first · v
         {version}
       </footer>
