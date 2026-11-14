@@ -28,5 +28,8 @@ benchmark/cases/
 .DS_Store
 Thumbs.db
 
+# Agent instructions (local only)
+CLAUDE.md
+
 # Firebase CLI cache
 .firebase/

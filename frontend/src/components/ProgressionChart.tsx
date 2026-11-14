@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -30,41 +30,9 @@ interface DotProps {
 }
 
 export const ProgressionChart: React.FC<Props> = ({ sessions }) => {
-  const [demoEnabled, setDemoEnabled] = useState<boolean>(
-    sessions.length < 2
-  );
-
   const chartData = useMemo<ChartPoint[]>(() => {
     const points: ChartPoint[] = [];
-    const now = new Date();
-    const todayDateStr = now.toDateString();
-
-    // 5 Seeded demo points spaced 1 day apart ending yesterday
-    if (demoEnabled) {
-      const demoBaselines = [
-        { dayOffset: 5, stress: 0.68, anxiety: 0.62, calm: 0.25, anchor: false },
-        { dayOffset: 4, stress: 0.64, anxiety: 0.58, calm: 0.32, anchor: false },
-        { dayOffset: 3, stress: 0.56, anxiety: 0.52, calm: 0.40, anchor: true },
-        { dayOffset: 2, stress: 0.50, anxiety: 0.46, calm: 0.48, anchor: false },
-        { dayOffset: 1, stress: 0.44, anxiety: 0.40, calm: 0.55, anchor: true },
-      ];
-
-      demoBaselines.forEach((b, idx) => {
-        const d = new Date(now.getTime() - b.dayOffset * 86400000);
-        const dateLabel = d.toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
-        });
-        points.push({
-          id: `demo_${idx}`,
-          dateLabel,
-          stress: b.stress,
-          anxiety: b.anxiety,
-          calm_flow: b.calm,
-          calm_anchor: b.anchor,
-        });
-      });
-    }
+    const todayDateStr = new Date().toDateString();
 
     // User sessions (oldest to newest)
     sessions.forEach((s) => {
@@ -88,7 +56,7 @@ export const ProgressionChart: React.FC<Props> = ({ sessions }) => {
     });
 
     return points;
-  }, [sessions, demoEnabled]);
+  }, [sessions]);
 
   // Client-side trend text computation
   const trendText = useMemo(() => {
@@ -146,19 +114,6 @@ export const ProgressionChart: React.FC<Props> = ({ sessions }) => {
             Emotional Rhythm Over Time
           </h3>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setDemoEnabled(!demoEnabled)}
-          aria-pressed={demoEnabled}
-          className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer self-start sm:self-auto ${
-            demoEnabled
-              ? 'bg-turmericMist/60 border-peachTerracotta text-espressoInk'
-              : 'border-borderHairline text-warmUmber hover:text-espressoInk'
-          }`}
-        >
-          Demo Baseline {demoEnabled ? 'Active' : 'Off'}
-        </button>
       </div>
 
       {/* Empty State */}
