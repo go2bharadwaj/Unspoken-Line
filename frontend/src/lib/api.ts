@@ -1,4 +1,5 @@
 import { AnalyzeSketchRequest, AnalyzeSketchResponse } from '../types';
+import { getIdToken } from './firebase';
 
 export async function analyzeSketch(
   req: AnalyzeSketchRequest
@@ -6,12 +7,14 @@ export async function analyzeSketch(
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const url = `${baseUrl}/api/v1/analyze-sketch`;
 
+  const token = await getIdToken();
   let response: Response;
   try {
     response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(req),
     });

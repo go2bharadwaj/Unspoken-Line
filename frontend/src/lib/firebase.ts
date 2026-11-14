@@ -86,6 +86,14 @@ export async function signInWithGoogle(): Promise<User | null> {
   return result.user;
 }
 
+export async function getIdToken(): Promise<string | null> {
+  try {
+    return (await auth?.currentUser?.getIdToken()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function signOutUser(): Promise<void> {
   if (!firebaseEnabled || !auth) {
     return;
