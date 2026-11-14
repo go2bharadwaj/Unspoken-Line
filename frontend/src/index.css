@@ -37,6 +37,3 @@
 
 /* Hero collapses on scroll; anchoring would re-adjust scrollY and bounce it back */
 html { overflow-anchor: none; }
-
-/* Landing is three screens (logo, message, history); only those sections carry snap-align, so other views scroll freely */
-html { scroll-snap-type: y mandatory; }

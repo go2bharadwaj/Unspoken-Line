@@ -111,6 +111,13 @@ export default function App() {
   }, []);
 
   const logoInHero = view === "landing" && !scrolled;
+
+  // Snap only on the three-screen landing: elsewhere the footer would be the sole snap point
+  // and mandatory snapping pins the page to the bottom (e.g. the results view on phones)
+  useEffect(() => {
+    document.documentElement.style.scrollSnapType =
+      view === "landing" ? "y mandatory" : "";
+  }, [view]);
   // Breathing radial wash: behind the message, and peeking up at the bottom of the logo screen
   const pulse = {
     className: "w-72 h-72 rounded-full pointer-events-none",
@@ -129,6 +136,18 @@ export default function App() {
   const logoTransition = shouldReduceMotion
     ? { duration: 0 }
     : { duration: 0.8, ease: [0.22, 1, 0.36, 1] as const };
+
+  // One pulse that glides between the logo screen and the message; the outer element
+  // carries the layout move, the inner one breathes, so the two transforms don't collide
+  const movingPulse = (
+    <motion.div
+      layoutId="pulse"
+      transition={logoTransition}
+      className="w-72 h-72 shrink-0"
+    >
+      <motion.div {...pulse} />
+    </motion.div>
+  );
 
   const handleSignIn = async () => {
     try {
@@ -338,11 +357,13 @@ export default function App() {
               className="w-full flex flex-col items-center text-center px-6 pb-8"
             >
               {/* Section 1 of 3: logo. Height = viewport minus the sticky header (h-12/14 + py-4) */}
-              <section className="relative overflow-hidden w-full snap-start flex flex-col items-center justify-center h-[calc(100svh-5rem)] sm:h-[calc(100svh-5.5rem)]">
-                {/* Pulse peeking up from below: centre sits on the bottom edge (-bottom = half its size), so only the top half shows */}
-                <div className="absolute inset-x-0 -bottom-36 flex justify-center pointer-events-none">
-                  <motion.div {...pulse} />
-                </div>
+              <section className="relative overflow-hidden w-full snap-start scroll-mt-20 sm:scroll-mt-[5.5rem] flex flex-col items-center justify-center h-[calc(100svh-5rem)] sm:h-[calc(100svh-5.5rem)]">
+                {/* The message's pulse, parked so only its top ~56px (18rem - 14.5rem) peeks under the tagline */}
+                {logoInHero && (
+                  <div className="absolute inset-x-0 -bottom-[14.5rem] flex justify-center pointer-events-none">
+                    {movingPulse}
+                  </div>
+                )}
                 {logoInHero && (
                   <>
                     <div className="flex-1 flex items-center justify-center">
@@ -357,7 +378,7 @@ export default function App() {
                     <motion.span
                       layoutId="tagline"
                       transition={logoTransition}
-                      className="relative text-xs uppercase tracking-widest text-warmUmber pb-6"
+                      className="relative text-xs uppercase tracking-widest text-warmUmber pb-20"
                     >
                       Pen on Paper · Silent Reflection
                     </motion.span>
@@ -370,10 +391,11 @@ export default function App() {
                 <div className="flex-1 w-full flex items-center justify-center">
                   {/* Breathing Radial Wash Background */}
                   <div className="relative w-full max-w-lg flex items-center justify-center my-6">
-                    <motion.div
-                      {...pulse}
-                      className={`${pulse.className} absolute`}
-                    />
+                    {!logoInHero && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        {movingPulse}
+                      </div>
+                    )}
 
                     <div className="relative z-10 max-w-md py-12">
                       {!logoInHero && (
