@@ -34,3 +34,6 @@
     outline-offset: 2px;
   }
 }
+
+/* Hero collapses on scroll; anchoring would re-adjust scrollY and bounce it back */
+html { overflow-anchor: none; }
