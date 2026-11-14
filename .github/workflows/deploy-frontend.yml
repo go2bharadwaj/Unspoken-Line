@@ -1,0 +1,49 @@
+name: Deploy frontend
+
+on:
+  push:
+    branches: [main]
+    paths: [frontend/**, firebase.json, firestore.rules, deploy/smoke_frontend.sh, .github/workflows/deploy-frontend.yml]
+  workflow_dispatch:
+
+concurrency: deploy-frontend
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT: unspoken-line
+  FIREBASE_TOOLS: firebase-tools@15.36.0
+  # Public web config (not secrets): Firebase web keys are meant to ship in the bundle.
+  VITE_API_URL: https://34-58-192-9.nip.io
+  VITE_FIREBASE_API_KEY: AIzaSyCVcEAzJgsy7gsSKmFlkAsRO1NFtJOEcCA
+  VITE_FIREBASE_AUTH_DOMAIN: unspoken-line.firebaseapp.com
+  VITE_FIREBASE_PROJECT_ID: unspoken-line
+  VITE_FIREBASE_APP_ID: 1:861975455318:web:89f0cc6a8daa54128dfdf7
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - name: Build (typecheck + bundle)
+        working-directory: frontend
+        run: npm ci && npm run build
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/861975455318/locations/global/workloadIdentityPools/github/providers/github-oidc
+          service_account: github-deployer@unspoken-line.iam.gserviceaccount.com
+      - name: Deploy to a preview channel and smoke-test it
+        id: preview
+        run: |
+          CH="c-${GITHUB_SHA::12}"
+          URL=$(npx -y $FIREBASE_TOOLS hosting:channel:deploy "$CH" --project $PROJECT --expires 1d --json | jq -r '.result["'$PROJECT'"].url')
+          echo "channel=$CH" >> "$GITHUB_OUTPUT"
+          bash deploy/smoke_frontend.sh "$URL"
+      - name: Promote to live (rules first, then site)
+        run: |
+          npx -y $FIREBASE_TOOLS deploy --only firestore:rules --project $PROJECT
+          npx -y $FIREBASE_TOOLS hosting:clone $PROJECT:${{ steps.preview.outputs.channel }} $PROJECT:live
