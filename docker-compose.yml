@@ -1,0 +1,27 @@
+# Backend API + Caddy (automatic HTTPS) for a single VM. See deploy/VM.md.
+services:
+  api:
+    build: ./backend
+    env_file: backend/.env
+    restart: unless-stopped
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_HOST: ${API_HOST:?set API_HOST in .env, e.g. 34-12-56-78.sslip.io}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

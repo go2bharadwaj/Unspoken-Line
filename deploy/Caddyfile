@@ -1,0 +1,6 @@
+{$API_HOST} {
+	request_body {
+		max_size 15MB
+	}
+	reverse_proxy api:8080
+}
