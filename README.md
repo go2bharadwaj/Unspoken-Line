@@ -91,16 +91,9 @@ The safety benchmark tests 150 cases across benign sketches, crisis statements, 
 
 ## Deployment
 
-### Deploy Backend to Google Cloud Run
+### Deploy Backend to a Google Cloud VM
 
-```bash
-gcloud run deploy unspoken-line-api \
-  --source backend \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars GEMINI_MODEL=gemini-3.8-flash,ALLOWED_ORIGINS=https://<your-app>.web.app \
-  --set-secrets GEMINI_API_KEY=gemini-api-key:latest
-```
+The backend runs with Docker Compose (API + Caddy for HTTPS) on a Compute Engine VM. Full steps: [deploy/VM.md](deploy/VM.md).
 
 ### Deploy Frontend & Firestore Rules to Firebase
 
