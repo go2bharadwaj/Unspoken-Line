@@ -1,0 +1,46 @@
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths: [backend/**, deploy/**, .github/workflows/deploy-backend.yml]
+  workflow_dispatch:
+
+concurrency: deploy-backend
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  VM: unspoken-line-vm
+  ZONE: us-central1-a
+  PROJECT: unspoken-line
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: backend/requirements-dev.txt }
+      - run: pip install -r backend/requirements-dev.txt
+      - run: python -m pytest backend/tests -q
+        env: { PYTHONPATH: backend }
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/861975455318/locations/global/workloadIdentityPools/github/providers/github-oidc
+          service_account: github-deployer@unspoken-line.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Ship and deploy
+        run: |
+          tar czf /tmp/backend.tgz --exclude=tests --exclude=__pycache__ -C backend .
+          F="--zone $ZONE --project $PROJECT --tunnel-through-iap --quiet"
+          gcloud compute scp /tmp/backend.tgz deploy/deploy.sh $VM:~ $F
+          gcloud compute ssh $VM $F --command "sudo bash ~/deploy.sh ${GITHUB_SHA} ~/backend.tgz"
