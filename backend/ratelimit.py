@@ -3,7 +3,7 @@ import time
 from collections import defaultdict, deque
 
 PER_USER_HOUR = int(os.getenv("RATE_LIMIT_PER_USER_HOUR", "10"))
-PER_IP_HOUR = int(os.getenv("RATE_LIMIT_PER_IP_HOUR", "10"))  # guests without a Firebase token
+PER_IP_HOUR = int(os.getenv("RATE_LIMIT_PER_IP_HOUR", "100"))  # guests without a Firebase token
 DAILY_CAP = int(os.getenv("DAILY_ANALYZE_CAP", "1000"))
 
 # ponytail: in-memory, single process (one VM). Use Redis/Cloud Armor if we scale out.
