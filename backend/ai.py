@@ -78,7 +78,7 @@ async def run_flash(
     telemetry: Telemetry,
     fallback: tuple[EmotionScores, list[str]],
 ) -> tuple[FlashResult, Literal["gemini", "fallback"]]:
-    """Runs Gemini Flash multimodal perception model with strict safety guardrails and fallback."""
+    """Runs the Gemini multimodal perception model with strict safety guardrails and fallback."""
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         return build_fallback_flash(fallback), "fallback"
@@ -93,7 +93,7 @@ async def run_flash(
         sys_inst = SYSTEM_INSTRUCTION.format(timer_duration_sec=telemetry.timer_duration_sec)
 
         resp = await client.aio.models.generate_content(
-            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-4-hydrogen"),
             contents=[
                 types.Part.from_bytes(data=jpeg, mime_type="image/jpeg"),
                 user_text,
