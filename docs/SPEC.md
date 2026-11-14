@@ -34,7 +34,7 @@ No neon gradients, no pure white, no heavy drop shadows, no emojis, no generic S
 4. **Parallel AI** via `asyncio.gather`: Gemini (`gemini-3.8-flash`, JSON schema output) and Jev (`jev-latest`, httpx). Each falls back to deterministic stroke math when its key is missing or the call fails, so the demo never crashes.
 5. **Merger.** Crisis from either branch → CRISIS_SUPPORT (988 Lifeline). Otherwise `merged = 0.55 * jev + 0.45 * flash` per class.
 6. **Results.** Reflection text card, merged score breakdown, 3 activity pills for the primary class, "Learn more" drawer (stroke evidence bullets + why it mapped), activity player modal.
-7. **Progression.** Multi-line chart (Stress, Anxiety, Calm Flow) across sessions up to Today, with a "Demo Baseline" toggle that seeds 5 historical points. Trend text card under it.
+7. **Progression.** Multi-line chart (Stress, Anxiety, Calm Flow) across the user's real sessions up to Today (no demo data). Trend text card under it.
 8. **Account & privacy.** Google sign-in (Firebase `signInWithPopup`) or Guest Sanctuary (localStorage; also used when Firebase env vars are absent). Firestore path `/users/{uid}/sessions/{sessionId}`. Privacy badge: "No words spoken. Your physical sketch photo vanishes from memory the moment it is read—only your emotional rhythm stays with you." One-click "Clear My History".
 
 ## 3. Emotion taxonomy (fixed)
