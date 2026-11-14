@@ -27,3 +27,6 @@ benchmark/cases/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Firebase CLI cache
+.firebase/
