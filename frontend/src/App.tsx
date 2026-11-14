@@ -25,6 +25,8 @@ import { AnalysisResultsView } from "./components/AnalysisResultsView";
 import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
 import { PrivacyBadge } from "./components/PrivacyBadge";
+import { AboutCreators } from "./components/AboutCreators";
+import { version } from "../package.json";
 import { CrisisSupportView } from "./components/CrisisSupportView";
 
 type ViewMode =
@@ -62,7 +64,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [sessions, setSessions] = useState<StoredSession[]>([]);
   const [timerDurationSec, setTimerDurationSec] =
-    useState<TimerDurationSec>(30);
+    useState<TimerDurationSec>(15);
   const [analysisResult, setAnalysisResult] =
     useState<AnalyzeSketchResponse | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
@@ -263,7 +265,7 @@ export default function App() {
                 transition={logoTransition}
                 src="/logo.png"
                 alt="Unspoken Line"
-                className="h-full w-auto mix-blend-multiply"
+                className="h-full w-auto"
               />
             )}
           </button>
@@ -317,20 +319,35 @@ export default function App() {
               className="w-full flex flex-col items-center text-center px-6 pb-8"
             >
               {/* Logo hero: fills the first screen, then collapses as the logo flies to the header */}
+              {/* Height = viewport minus the sticky header (h-12/14 + py-4), so the first screen is just logo + tagline */}
               <motion.div
-                className="w-full flex items-center justify-center"
-                initial={false}
-                animate={{ height: logoInHero ? "52svh" : "8svh" }}
+                layout
                 transition={logoTransition}
+                className={`w-full flex flex-col items-center justify-center ${
+                  logoInHero
+                    ? "h-[calc(100svh-5rem)] sm:h-[calc(100svh-5.5rem)]"
+                    : "h-[8svh]"
+                }`}
               >
                 {logoInHero && (
-                  <motion.img
-                    layoutId="brand-logo"
-                    transition={logoTransition}
-                    src="/logo.png"
-                    alt="Unspoken Line"
-                    className="w-[min(88vw,600px)] h-auto mix-blend-multiply"
-                  />
+                  <>
+                    <div className="flex-1 flex items-center justify-center">
+                      <motion.img
+                        layoutId="brand-logo"
+                        transition={logoTransition}
+                        src="/logo.png"
+                        alt="Unspoken Line"
+                        className="w-[min(88vw,600px)] h-auto"
+                      />
+                    </div>
+                    <motion.span
+                      layoutId="tagline"
+                      transition={logoTransition}
+                      className="text-xs uppercase tracking-widest text-warmUmber pb-6"
+                    >
+                      Pen on Paper · Silent Reflection
+                    </motion.span>
+                  </>
                 )}
               </motion.div>
 
@@ -353,9 +370,15 @@ export default function App() {
                 />
 
                 <div className="relative z-10 max-w-md py-12">
-                  <span className="text-xs uppercase tracking-widest text-warmUmber mb-3 block">
-                    Pen on Paper · Silent Reflection
-                  </span>
+                  {!logoInHero && (
+                    <motion.span
+                      layoutId="tagline"
+                      transition={logoTransition}
+                      className="text-xs uppercase tracking-widest text-warmUmber mb-3 block"
+                    >
+                      Pen on Paper · Silent Reflection
+                    </motion.span>
+                  )}
                   <h2 className="font-serif text-3xl sm:text-5xl font-medium text-espressoInk tracking-tight leading-tight mb-4">
                     A cognitive imprint on paper is not random.
                   </h2>
@@ -564,9 +587,12 @@ export default function App() {
         />
       )}
 
+      {view === "landing" && <AboutCreators />}
+
       {/* Footer */}
       <footer className="w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-warmUmber/60 border-t border-borderHairline/40">
-        Unspoken Line · Non-verbal mindfulness sanctuary · Privacy-first
+        Unspoken Line · Non-verbal mindfulness sanctuary · Privacy-first · v
+        {version}
       </footer>
     </div>
   );

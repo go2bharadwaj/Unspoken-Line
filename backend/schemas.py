@@ -13,7 +13,7 @@ class EmotionScores(BaseModel):
 class AnalyzeSketchRequest(BaseModel):
     image_base64: str = Field(..., max_length=12_000_000, description="Raw base64 image data without data: prefix.")
     mime_type: Literal["image/jpeg", "image/png", "image/webp"]
-    timer_duration_sec: Literal[5, 10, 30, 60]
+    timer_duration_sec: Literal[5, 10, 15, 30, 60]
     user_baseline_scores: EmotionScores | None = None
 
 

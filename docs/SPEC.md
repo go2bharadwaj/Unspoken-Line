@@ -60,7 +60,7 @@ Request:
   "user_baseline_scores": { "stress": 0.42, "anxiety": 0.38, "mental_fatigue": 0.30, "calm_flow": 0.55, "radiant_joy": 0.50 }
 }
 ```
-`user_baseline_scores` is optional (null on first session). `timer_duration_sec` ∈ {5, 10, 30, 60}.
+`user_baseline_scores` is optional (null on first session). `timer_duration_sec` ∈ {5, 10, 15, 30, 60}.
 
 Response:
 ```json

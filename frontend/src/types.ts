@@ -44,7 +44,7 @@ export type InteractionType =
   | 'WATERCOLOR_BLOOM'
   | 'RADIAL_BLOOM';
 
-export type TimerDurationSec = 5 | 10 | 30 | 60;
+export type TimerDurationSec = 5 | 10 | 15 | 30 | 60;
 
 export interface Activity {
   id: string;

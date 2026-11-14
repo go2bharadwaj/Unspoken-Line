@@ -7,7 +7,7 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['created_at', 'timer_duration_sec', 'scores', 'calm_anchor', 'aura_hex'])
         && request.resource.data.keys().hasAll(['created_at', 'timer_duration_sec', 'scores'])
-        && request.resource.data.timer_duration_sec in [5, 10, 30, 60]
+        && request.resource.data.timer_duration_sec in [5, 10, 15, 30, 60]
         && request.resource.data.created_at == request.time
         && request.resource.data.scores is map
         && request.resource.data.scores.keys().hasOnly(['stress', 'anxiety', 'mental_fatigue', 'calm_flow', 'radiant_joy'])
