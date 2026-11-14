@@ -177,6 +177,7 @@ export async function listSessions(
           scores: raw.scores,
           calm_anchor: raw.calm_anchor,
           aura_hex: raw.aura_hex,
+          summary: typeof raw.summary === 'string' ? raw.summary : undefined,
         };
         results.push(session);
       });
@@ -197,14 +198,18 @@ export async function listSessions(
 export async function markSession(
   user: User | null,
   id: string,
-  patch: { calm_anchor?: boolean; aura_hex?: string }
+  patch: { calm_anchor?: boolean; aura_hex?: string; summary?: string }
 ): Promise<void> {
-  const updatePayload: { calm_anchor?: boolean; aura_hex?: string } = {};
+  const updatePayload: { calm_anchor?: boolean; aura_hex?: string; summary?: string } = {};
   if (typeof patch.calm_anchor === 'boolean') {
     updatePayload.calm_anchor = patch.calm_anchor;
   }
   if (typeof patch.aura_hex === 'string' && /^#[0-9A-Fa-f]{6}$/.test(patch.aura_hex)) {
     updatePayload.aura_hex = patch.aura_hex;
+  }
+  // Same cap as the backend's SUMMARY_MAX_CHARS and firestore.rules
+  if (typeof patch.summary === 'string' && patch.summary.length > 0 && patch.summary.length <= 1500) {
+    updatePayload.summary = patch.summary;
   }
 
   if (Object.keys(updatePayload).length === 0) {
@@ -226,6 +231,9 @@ export async function markSession(
     }
     if (updatePayload.aura_hex !== undefined) {
       target.aura_hex = updatePayload.aura_hex;
+    }
+    if (updatePayload.summary !== undefined) {
+      target.summary = updatePayload.summary;
     }
     saveLocalSessions(local);
   }

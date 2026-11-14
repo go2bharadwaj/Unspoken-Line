@@ -71,6 +71,15 @@ export interface AnalyzeSketchRequest {
   mime_type: 'image/jpeg' | 'image/png' | 'image/webp';
   timer_duration_sec: TimerDurationSec;
   user_baseline_scores?: EmotionScores | null;
+  /** Latest progression notes (S_n-1); omitted on a first session. */
+  previous_summary?: string | null;
+}
+
+export interface SummarizeReadingRequest {
+  reading_text: string;
+  progression_text?: string | null;
+  previous_summary?: string | null;
+  reading_date: string; // YYYY-MM-DD
 }
 
 export interface AnalyzeSketchResponse {
@@ -78,6 +87,7 @@ export interface AnalyzeSketchResponse {
   retry_or_safety_message: string | null;
   telemetry: Telemetry | null;
   visual_reflection_text: string | null;
+  progression_reflection_text: string | null;
   stroke_evidence_bullets: string[];
   flash_scores: EmotionScores | null;
   jev_scores: EmotionScores | null;
@@ -96,4 +106,6 @@ export interface StoredSession {
   scores: EmotionScores;
   calm_anchor?: boolean;
   aura_hex?: string;
+  /** Progression notes written after this session (S_n), sent with the next one. */
+  summary?: string;
 }

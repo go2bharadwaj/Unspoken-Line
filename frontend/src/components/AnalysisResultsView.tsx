@@ -26,6 +26,17 @@ const SCORE_CONFIGS: Array<{
   { key: 'radiant_joy', label: 'Radiant Joy', colorHex: '#F2C97D' },
 ];
 
+// Gemini writes free-form text; keep its paragraph breaks
+const Paragraphs: React.FC<{ text: string }> = ({ text }) => (
+  <div className="flex flex-col gap-3 text-base text-espressoInk/90 leading-relaxed">
+    {text.split(/\n\s*\n/).map((para, i) => (
+      <p key={i} className="whitespace-pre-line">
+        {para.trim()}
+      </p>
+    ))}
+  </div>
+);
+
 export const AnalysisResultsView: React.FC<Props> = ({
   result,
   onOpenActivity,
@@ -71,16 +82,17 @@ export const AnalysisResultsView: React.FC<Props> = ({
           <h2 className="font-serif text-2xl sm:text-3xl font-medium text-espressoInk tracking-tight leading-snug mb-4">
             What does this drawing say about my current mental state?
           </h2>
-          {/* Free-form text: keep the model's paragraph breaks */}
-          <div className="flex flex-col gap-3 text-base text-espressoInk/90 leading-relaxed">
-            {result.visual_reflection_text
-              .split(/\n\s*\n/)
-              .map((para, i) => (
-                <p key={i} className="whitespace-pre-line">
-                  {para.trim()}
-                </p>
-              ))}
-          </div>
+          <Paragraphs text={result.visual_reflection_text} />
+
+          {/* From the second session on: how this reading compares with the user's progression notes */}
+          {result.progression_reflection_text && (
+            <div className="mt-6 pt-6 border-t border-borderHairline">
+              <h3 className="font-serif text-xl sm:text-2xl font-medium text-espressoInk tracking-tight mb-3">
+                Since your last drawing
+              </h3>
+              <Paragraphs text={result.progression_reflection_text} />
+            </div>
+          )}
         </section>
       )}
 
