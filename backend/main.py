@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
 
 import ratelimit
 from ai import run_flash, run_jev
@@ -36,6 +38,19 @@ from schemas import (
 )
 
 load_dotenv()
+
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
+
+
+def _verify_uid(token: str) -> str | None:
+    # ponytail: fetches Google's certs per call (~tens of ms); cache them if analyze volume grows.
+    try:
+        claims = id_token.verify_firebase_token(
+            token, google_requests.Request(), audience=FIREBASE_PROJECT_ID
+        )
+        return claims.get("user_id") or claims.get("sub")
+    except Exception:
+        return None
 
 
 class JsonEventFormatter(logging.Formatter):
@@ -109,7 +124,13 @@ async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> Analyze
     ip = request.headers.get("x-forwarded-for", "").split(",")[-1].strip() or (
         request.client.host if request.client else "unknown"
     )
-    reason = ratelimit.check(ip)
+    # Signed-in users get their own bucket (safe on shared wifi); guests/invalid tokens fall back to IP.
+    auth = request.headers.get("authorization", "")
+    uid = None
+    if FIREBASE_PROJECT_ID and auth.lower().startswith("bearer "):
+        uid = await asyncio.to_thread(_verify_uid, auth[7:].strip())
+    key, limit = (f"uid:{uid}", ratelimit.PER_USER_HOUR) if uid else (f"ip:{ip}", ratelimit.PER_IP_HOUR)
+    reason = ratelimit.check(key, limit)
     if reason:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=reason)
 
