@@ -111,6 +111,21 @@ export default function App() {
   }, []);
 
   const logoInHero = view === "landing" && !scrolled;
+  // Breathing radial wash: behind the message, and peeking up at the bottom of the logo screen
+  const pulse = {
+    className: "w-72 h-72 rounded-full pointer-events-none",
+    style: {
+      background:
+        "radial-gradient(circle, rgba(245, 230, 196, 0.7) 0%, rgba(232, 153, 122, 0.35) 60%, rgba(250, 246, 238, 0) 100%)",
+    },
+    animate: { scale: shouldReduceMotion ? 1 : [0.92, 1.08, 0.92] },
+    transition: {
+      duration: 6,
+      repeat: Infinity,
+      ease: "easeInOut" as const,
+    },
+  };
+
   const logoTransition = shouldReduceMotion
     ? { duration: 0 }
     : { duration: 0.8, ease: [0.22, 1, 0.36, 1] as const };
@@ -323,7 +338,11 @@ export default function App() {
               className="w-full flex flex-col items-center text-center px-6 pb-8"
             >
               {/* Section 1 of 3: logo. Height = viewport minus the sticky header (h-12/14 + py-4) */}
-              <section className="w-full snap-start flex flex-col items-center justify-center h-[calc(100svh-5rem)] sm:h-[calc(100svh-5.5rem)]">
+              <section className="relative overflow-hidden w-full snap-start flex flex-col items-center justify-center h-[calc(100svh-5rem)] sm:h-[calc(100svh-5.5rem)]">
+                {/* Pulse peeking up from below: centre sits on the bottom edge (-bottom = half its size), so only the top half shows */}
+                <div className="absolute inset-x-0 -bottom-36 flex justify-center pointer-events-none">
+                  <motion.div {...pulse} />
+                </div>
                 {logoInHero && (
                   <>
                     <div className="flex-1 flex items-center justify-center">
@@ -338,7 +357,7 @@ export default function App() {
                     <motion.span
                       layoutId="tagline"
                       transition={logoTransition}
-                      className="text-xs uppercase tracking-widest text-warmUmber pb-6"
+                      className="relative text-xs uppercase tracking-widest text-warmUmber pb-6"
                     >
                       Pen on Paper · Silent Reflection
                     </motion.span>
@@ -352,19 +371,8 @@ export default function App() {
                   {/* Breathing Radial Wash Background */}
                   <div className="relative w-full max-w-lg flex items-center justify-center my-6">
                     <motion.div
-                      className="w-72 h-72 sm:w-88 sm:h-88 rounded-full pointer-events-none absolute"
-                      style={{
-                        background:
-                          "radial-gradient(circle, rgba(245, 230, 196, 0.7) 0%, rgba(232, 153, 122, 0.35) 60%, rgba(250, 246, 238, 0) 100%)",
-                      }}
-                      animate={{
-                        scale: shouldReduceMotion ? 1 : [0.92, 1.08, 0.92],
-                      }}
-                      transition={{
-                        duration: 6,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
+                      {...pulse}
+                      className={`${pulse.className} absolute`}
                     />
 
                     <div className="relative z-10 max-w-md py-12">
@@ -413,45 +421,50 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Section 3 of 3: history and the people behind it */}
+              {/* Section 3 of 3: history (signed in) and the About dropdown */}
               <section className="w-full snap-start scroll-mt-20 sm:scroll-mt-[5.5rem] flex flex-col items-center">
-                {/* Progression History Chart */}
-                <ProgressionChart sessions={sessions} />
+                {/* History is per account; without Firebase (local dev) everyone is a guest, so keep it there */}
+                {(user || !firebaseEnabled) && (
+                  <>
+                    {/* Progression History Chart */}
+                    <ProgressionChart sessions={sessions} />
 
-                {/* Clear History Inline Confirmation */}
-                <div className="my-8">
-                  {confirmingClear ? (
-                    <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
-                      <span className="text-xs text-espressoInk">
-                        Clear all stored sessions? This cannot be undone.
-                      </span>
-                      <div className="flex items-center gap-2">
+                    {/* Clear History Inline Confirmation */}
+                    <div className="my-8">
+                      {confirmingClear ? (
+                        <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
+                          <span className="text-xs text-espressoInk">
+                            Clear all stored sessions? This cannot be undone.
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleClearHistory}
+                              className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                            >
+                              Yes, clear history
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmingClear(false)}
+                              className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                         <button
                           type="button"
-                          onClick={handleClearHistory}
-                          className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                          onClick={() => setConfirmingClear(true)}
+                          className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
                         >
-                          Yes, clear history
+                          Clear My History
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingClear(false)}
-                          className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingClear(true)}
-                      className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
-                    >
-                      Clear My History
-                    </button>
-                  )}
-                </div>
+                  </>
+                )}
 
                 <AboutCreators />
               </section>
