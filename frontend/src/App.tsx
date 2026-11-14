@@ -1,0 +1,511 @@
+import { useState, useEffect, useTransition } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { User } from 'firebase/auth';
+import {
+  Activity,
+  AnalyzeSketchResponse,
+  EmotionScores,
+  StoredSession,
+  TimerDurationSec,
+} from './types';
+import { analyzeSketch } from './lib/api';
+import {
+  firebaseEnabled,
+  signInWithGoogle,
+  signOutUser,
+  onUserChanged,
+  saveSession,
+  listSessions,
+  markSession,
+  clearHistory,
+} from './lib/firebase';
+import { DrawingTimerRitual } from './components/DrawingTimerRitual';
+import { PhotoCaptureCard } from './components/PhotoCaptureCard';
+import { AnalysisResultsView } from './components/AnalysisResultsView';
+import { ActivityPlayerModal } from './components/ActivityPlayerModal';
+import { ProgressionChart } from './components/ProgressionChart';
+import { PrivacyBadge } from './components/PrivacyBadge';
+import { CrisisSupportView } from './components/CrisisSupportView';
+
+type ViewMode =
+  | 'landing'
+  | 'ritual'
+  | 'capture'
+  | 'analyzing'
+  | 'results'
+  | 'crisis';
+
+function computeBaseline(sessions: StoredSession[]): EmotionScores | null {
+  if (!sessions || sessions.length === 0) return null;
+  const recent = sessions.slice(-5);
+  const sum: EmotionScores = {
+    stress: 0,
+    anxiety: 0,
+    mental_fatigue: 0,
+    calm_flow: 0,
+    radiant_joy: 0,
+  };
+  recent.forEach((s) => {
+    sum.stress += s.scores.stress;
+    sum.anxiety += s.scores.anxiety;
+    sum.mental_fatigue += s.scores.mental_fatigue;
+    sum.calm_flow += s.scores.calm_flow;
+    sum.radiant_joy += s.scores.radiant_joy;
+  });
+  const count = recent.length;
+  return {
+    stress: Number((sum.stress / count).toFixed(2)),
+    anxiety: Number((sum.anxiety / count).toFixed(2)),
+    mental_fatigue: Number((sum.mental_fatigue / count).toFixed(2)),
+    calm_flow: Number((sum.calm_flow / count).toFixed(2)),
+    radiant_joy: Number((sum.radiant_joy / count).toFixed(2)),
+  };
+}
+
+export default function App() {
+  const [view, setView] = useState<ViewMode>('landing');
+  const [user, setUser] = useState<User | null>(null);
+  const [sessions, setSessions] = useState<StoredSession[]>([]);
+  const [timerDurationSec, setTimerDurationSec] = useState<TimerDurationSec>(30);
+  const [analysisResult, setAnalysisResult] =
+    useState<AnalyzeSketchResponse | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
+  const [captureMessage, setCaptureMessage] = useState<string | null>(null);
+  const [crisisMessage, setCrisisMessage] = useState<string | null>(null);
+  const [activeActivity, setActiveActivity] = useState<Activity | null>(null);
+  const [confirmingClear, setConfirmingClear] = useState<boolean>(false);
+
+  const [, startTransition] = useTransition();
+  const shouldReduceMotion = useReducedMotion();
+
+  // Listen to Firebase Auth state
+  useEffect(() => {
+    const unsub = onUserChanged((currentUser) => {
+      setUser(currentUser);
+      refreshSessions(currentUser);
+    });
+    return () => unsub();
+  }, []);
+
+  const refreshSessions = async (currentUser: User | null = user) => {
+    try {
+      const data = await listSessions(currentUser);
+      setSessions(data);
+    } catch {
+      setSessions([]);
+    }
+  };
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch {
+      // User cancelled or auth error
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+    } catch {
+      // Signout error
+    }
+  };
+
+  const handleRitualComplete = (duration: TimerDurationSec) => {
+    setTimerDurationSec(duration);
+    setCaptureMessage(null);
+    setView('capture');
+  };
+
+  const handleAnalyzeSketch = async (base64: string) => {
+    setView('analyzing');
+    setCaptureMessage(null);
+
+    const baseline = computeBaseline(sessions);
+
+    try {
+      const res = await analyzeSketch({
+        image_base64: base64,
+        mime_type: 'image/jpeg',
+        timer_duration_sec: timerDurationSec,
+        user_baseline_scores: baseline,
+      });
+
+      if (res.safety_status === 'SAFE') {
+        let savedId = `local_${Date.now()}`;
+        if (res.merged_scores) {
+          try {
+            savedId = await saveSession(user, {
+              timer_duration_sec: timerDurationSec,
+              scores: res.merged_scores,
+            });
+            await refreshSessions(user);
+          } catch {
+            // Storage failure fallback
+          }
+        }
+        setCurrentSessionId(savedId);
+        setAnalysisResult(res);
+        startTransition(() => {
+          setView('results');
+        });
+      } else if (res.safety_status === 'CRISIS_SUPPORT') {
+        setCrisisMessage(res.retry_or_safety_message);
+        startTransition(() => {
+          setView('crisis');
+        });
+      } else {
+        // RETRY_CAPTURE or BLOCKED_CONTENT
+        setCaptureMessage(
+          res.retry_or_safety_message ||
+            'We could not read the sketch clearly. Please try again with brighter light or closer framing.'
+        );
+        startTransition(() => {
+          setView('capture');
+        });
+      }
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Unable to connect to the analysis service.';
+      setCaptureMessage(msg);
+      startTransition(() => {
+        setView('capture');
+      });
+    }
+  };
+
+  const handleOpenActivity = (activity: Activity) => {
+    setActiveActivity(activity);
+  };
+
+  const handleCloseActivity = () => {
+    setActiveActivity(null);
+  };
+
+  const handleMarkSession = async (patch: {
+    calm_anchor?: boolean;
+    aura_hex?: string;
+  }) => {
+    if (!currentSessionId) return;
+    try {
+      await markSession(user, currentSessionId, patch);
+      await refreshSessions(user);
+    } catch {
+      // Ignore mark error
+    }
+  };
+
+  const handleDoneResults = () => {
+    setAnalysisResult(null);
+    setCurrentSessionId('');
+    setView('landing');
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await clearHistory(user);
+      await refreshSessions(user);
+      setConfirmingClear(false);
+    } catch {
+      // Handle clear error
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-canvasPaper text-espressoInk font-sans flex flex-col justify-between selection:bg-turmericMist">
+      {/* Top Header */}
+      <header className="w-full max-w-4xl mx-auto px-6 py-6 flex items-center justify-between z-30">
+        <button
+          type="button"
+          onClick={() => {
+            if (view !== 'analyzing') {
+              setAnalysisResult(null);
+              setView('landing');
+            }
+          }}
+          className="text-left cursor-pointer group"
+        >
+          <h1 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-espressoInk group-hover:text-peachTerracotta transition-colors">
+            Unspoken Line
+          </h1>
+          <p className="text-[11px] uppercase tracking-widest text-warmUmber">
+            Non-Verbal Mindfulness Sanctuary
+          </p>
+        </button>
+
+        <div className="flex items-center gap-3">
+          {firebaseEnabled ? (
+            user ? (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-warmUmber hidden sm:inline">
+                  {user.displayName || user.email || 'Sanctuary Member'}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="px-3.5 py-1.5 rounded-full border border-borderHairline text-warmUmber hover:text-espressoInk hover:bg-turmericMist/30 transition-colors text-xs cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSignIn}
+                className="px-4 py-1.5 rounded-full border border-peachTerracotta text-espressoInk hover:bg-turmericMist/40 transition-colors text-xs font-medium cursor-pointer"
+              >
+                Sign in with Google
+              </button>
+            )
+          ) : (
+            <span className="px-3 py-1 rounded-full bg-turmericMist/40 border border-borderHairline text-[11px] text-warmUmber tracking-wide">
+              Guest Sanctuary
+            </span>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content Area with 700ms sanctuary cross-fade */}
+      <main className="flex-1 w-full max-w-4xl mx-auto flex flex-col items-center justify-center relative">
+        <AnimatePresence mode="wait">
+          {view === 'landing' && (
+            <motion.div
+              key="landing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 0.7,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="w-full flex flex-col items-center text-center px-6 py-8"
+            >
+              {/* Breathing Radial Wash Background */}
+              <div className="relative w-full max-w-lg flex items-center justify-center my-6">
+                <motion.div
+                  className="w-72 h-72 sm:w-88 sm:h-88 rounded-full pointer-events-none absolute"
+                  style={{
+                    background:
+                      'radial-gradient(circle, rgba(245, 230, 196, 0.7) 0%, rgba(232, 153, 122, 0.35) 60%, rgba(250, 246, 238, 0) 100%)',
+                  }}
+                  animate={{
+                    scale: shouldReduceMotion ? 1 : [0.92, 1.08, 0.92],
+                  }}
+                  transition={{
+                    duration: 6,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                />
+
+                <div className="relative z-10 max-w-md py-12">
+                  <span className="text-xs uppercase tracking-widest text-warmUmber mb-3 block">
+                    Pen on Paper · Silent Reflection
+                  </span>
+                  <h2 className="font-serif text-3xl sm:text-5xl font-medium text-espressoInk tracking-tight leading-tight mb-4">
+                    A cognitive imprint on paper is not random.
+                  </h2>
+                  <p className="text-espressoInk/80 text-sm sm:text-base leading-relaxed mb-8 max-w-sm mx-auto">
+                    Take a pen and paper. In seconds of non-verbal drawing, your hand reveals what words keep silent.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setView('ritual')}
+                    className="px-8 py-4 rounded-full bg-peachTerracotta text-canvasPaper font-medium hover:bg-peachTerracotta/90 transition-colors shadow-none text-base cursor-pointer"
+                  >
+                    Begin Session
+                  </button>
+                </div>
+              </div>
+
+              {/* Privacy Badge */}
+              <div className="my-6 w-full">
+                <PrivacyBadge />
+              </div>
+
+              {/* Progression History Chart */}
+              <ProgressionChart sessions={sessions} />
+
+              {/* Clear History Inline Confirmation */}
+              <div className="my-8">
+                {confirmingClear ? (
+                  <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
+                    <span className="text-xs text-espressoInk">
+                      Clear all stored sessions? This cannot be undone.
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleClearHistory}
+                        className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                      >
+                        Yes, clear history
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingClear(false)}
+                        className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingClear(true)}
+                    className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
+                  >
+                    Clear My History
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {view === 'ritual' && (
+            <motion.div
+              key="ritual"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 0.7,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="w-full"
+            >
+              <DrawingTimerRitual onComplete={handleRitualComplete} />
+            </motion.div>
+          )}
+
+          {view === 'capture' && (
+            <motion.div
+              key="capture"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 0.7,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="w-full"
+            >
+              <PhotoCaptureCard
+                timerDurationSec={timerDurationSec}
+                message={captureMessage}
+                onAnalyze={handleAnalyzeSketch}
+              />
+            </motion.div>
+          )}
+
+          {view === 'analyzing' && (
+            <motion.div
+              key="analyzing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 0.7,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="w-full min-h-[60vh] flex flex-col items-center justify-center p-6 text-center"
+            >
+              <motion.div
+                className="w-32 h-32 rounded-full border border-peachTerracotta flex items-center justify-center bg-turmericMist/20"
+                animate={{
+                  scale: shouldReduceMotion ? 1 : [0.95, 1.15, 0.95],
+                  opacity: shouldReduceMotion ? 0.8 : [0.5, 0.9, 0.5],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              >
+                <div className="w-12 h-12 rounded-full bg-sunlitAmber/50" />
+              </motion.div>
+
+              <h3 className="font-serif text-3xl font-medium text-espressoInk tracking-tight mt-8 mb-2">
+                Listening to your lines...
+              </h3>
+              <p className="text-warmUmber text-sm max-w-xs">
+                Analyzing stroke density, cadence, and spatial openness in memory.
+              </p>
+            </motion.div>
+          )}
+
+          {view === 'results' && analysisResult && (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 0.7,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="w-full"
+            >
+              <AnalysisResultsView
+                result={analysisResult}
+                onOpenActivity={handleOpenActivity}
+                onDone={handleDoneResults}
+              />
+            </motion.div>
+          )}
+
+          {view === 'crisis' && (
+            <motion.div
+              key="crisis"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 0.7,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="w-full"
+            >
+              <CrisisSupportView
+                message={crisisMessage}
+                onReturn={() => {
+                  setCrisisMessage(null);
+                  setView('landing');
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* Activity Player Modal */}
+      {activeActivity && (
+        <ActivityPlayerModal
+          activity={activeActivity}
+          sessionId={currentSessionId}
+          scores={
+            analysisResult?.merged_scores || {
+              stress: 0.2,
+              anxiety: 0.2,
+              mental_fatigue: 0.2,
+              calm_flow: 0.2,
+              radiant_joy: 0.2,
+            }
+          }
+          onClose={handleCloseActivity}
+          onMark={handleMarkSession}
+        />
+      )}
+
+      {/* Footer */}
+      <footer className="w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-warmUmber/60 border-t border-borderHairline/40">
+        Unspoken Line · Non-verbal mindfulness sanctuary · Privacy-first
+      </footer>
+    </div>
+  );
+}

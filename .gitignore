@@ -1,0 +1,29 @@
+# Environments and Python virtual environments
+.venv/
+venv/
+env/
+backend/.venv/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+
+# Environment secrets
+.env
+*.env
+!.env.example
+
+# Node dependencies and build artifacts
+node_modules/
+dist/
+build/
+
+# Benchmark generated cases
+benchmark/cases/
+
+# OS metadata
+.DS_Store
+Thumbs.db
