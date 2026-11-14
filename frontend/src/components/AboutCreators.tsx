@@ -50,18 +50,23 @@ const Avatar: React.FC<{ creator: Creator }> = ({ creator }) => {
 };
 
 export const AboutCreators: React.FC = () => (
-  <section
-    aria-labelledby="about-creators-heading"
-    className="w-full max-w-3xl mx-auto px-6 py-12 text-center"
-  >
-    <span className="text-xs uppercase tracking-widest text-warmUmber">
+  // Collapsed by default: returning users don't need to see it every visit
+  <details className="group w-full max-w-3xl mx-auto px-6 py-8 text-center">
+    <summary className="list-none [&::-webkit-details-marker]:hidden inline-flex items-center gap-1.5 cursor-pointer text-xs uppercase tracking-widest text-warmUmber hover:text-espressoInk transition-colors">
+      About
+      <svg
+        viewBox="0 0 24 24"
+        className="w-3.5 h-3.5 stroke-current fill-none stroke-2 transition-transform group-open:rotate-180"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    </summary>
+
+    <h3 className="font-serif text-xl sm:text-2xl font-medium text-espressoInk tracking-tight mt-6 mb-6">
       The People Behind the Line
-    </span>
-    <h3
-      id="about-creators-heading"
-      className="font-serif text-2xl sm:text-3xl font-medium text-espressoInk tracking-tight mt-1 mb-8"
-    >
-      About the Creators
     </h3>
 
     <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-xl mx-auto">
@@ -88,5 +93,5 @@ export const AboutCreators: React.FC = () => (
         </article>
       ))}
     </div>
-  </section>
+  </details>
 );

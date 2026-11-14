@@ -421,45 +421,50 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Section 3 of 3: history and the people behind it */}
+              {/* Section 3 of 3: history (signed in) and the About dropdown */}
               <section className="w-full snap-start scroll-mt-20 sm:scroll-mt-[5.5rem] flex flex-col items-center">
-                {/* Progression History Chart */}
-                <ProgressionChart sessions={sessions} />
+                {/* History is per account; without Firebase (local dev) everyone is a guest, so keep it there */}
+                {(user || !firebaseEnabled) && (
+                  <>
+                    {/* Progression History Chart */}
+                    <ProgressionChart sessions={sessions} />
 
-                {/* Clear History Inline Confirmation */}
-                <div className="my-8">
-                  {confirmingClear ? (
-                    <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
-                      <span className="text-xs text-espressoInk">
-                        Clear all stored sessions? This cannot be undone.
-                      </span>
-                      <div className="flex items-center gap-2">
+                    {/* Clear History Inline Confirmation */}
+                    <div className="my-8">
+                      {confirmingClear ? (
+                        <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
+                          <span className="text-xs text-espressoInk">
+                            Clear all stored sessions? This cannot be undone.
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleClearHistory}
+                              className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                            >
+                              Yes, clear history
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmingClear(false)}
+                              className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                         <button
                           type="button"
-                          onClick={handleClearHistory}
-                          className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                          onClick={() => setConfirmingClear(true)}
+                          className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
                         >
-                          Yes, clear history
+                          Clear My History
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingClear(false)}
-                          className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingClear(true)}
-                      className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
-                    >
-                      Clear My History
-                    </button>
-                  )}
-                </div>
+                  </>
+                )}
 
                 <AboutCreators />
               </section>
