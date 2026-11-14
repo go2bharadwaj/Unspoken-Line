@@ -119,6 +119,11 @@ export const PhotoCaptureCard: React.FC<Props> = ({
     e.target.value = '';
   };
 
+  // Desktop photographs via the webcam; phones use the native camera picker
+  const handleTakePhoto = canUseWebcam
+    ? handleOpenWebcam
+    : () => cameraInputRef.current?.click();
+
   const handleReadLines = async () => {
     if (!selectedBlob) return;
     setProcessing(true);
@@ -192,7 +197,7 @@ export const PhotoCaptureCard: React.FC<Props> = ({
           <div className="flex items-center gap-4 mt-4">
             <button
               type="button"
-              onClick={() => cameraInputRef.current?.click()}
+              onClick={handleTakePhoto}
               className="text-xs text-warmUmber underline hover:text-espressoInk cursor-pointer"
             >
               Retake photo
@@ -221,7 +226,7 @@ export const PhotoCaptureCard: React.FC<Props> = ({
         <div className="w-full flex flex-col gap-3 my-4">
           <button
             type="button"
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={handleTakePhoto}
             className="w-full py-3.5 px-6 rounded-full bg-peachTerracotta text-canvasPaper font-medium hover:bg-peachTerracotta/90 transition-colors shadow-none flex items-center justify-center gap-2 cursor-pointer"
           >
             <svg
@@ -236,26 +241,6 @@ export const PhotoCaptureCard: React.FC<Props> = ({
             </svg>
             Photograph Your Sketch
           </button>
-
-          {canUseWebcam && (
-            <button
-              type="button"
-              onClick={handleOpenWebcam}
-              className="w-full py-3 px-6 rounded-full border border-peachTerracotta text-espressoInk font-medium hover:bg-turmericMist/30 transition-colors flex items-center justify-center gap-2 cursor-pointer text-sm"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="w-4 h-4 stroke-current fill-none stroke-[1.75]"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M23 7l-7 5 7 5V7z" />
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-              </svg>
-              Use Webcam
-            </button>
-          )}
 
           <button
             type="button"

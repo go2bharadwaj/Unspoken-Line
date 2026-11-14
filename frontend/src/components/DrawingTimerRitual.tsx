@@ -10,7 +10,7 @@ interface Props {
 type RitualState = 'idle' | 'pause' | 'drawing' | 'ended';
 
 export const DrawingTimerRitual: React.FC<Props> = ({ onComplete }) => {
-  const [duration, setDuration] = useState<TimerDurationSec>(30);
+  const [duration, setDuration] = useState<TimerDurationSec>(15);
   const [state, setState] = useState<RitualState>('idle');
   const [pauseCount, setPauseCount] = useState(3);
   const [announcement, setAnnouncement] = useState('');
@@ -96,8 +96,8 @@ export const DrawingTimerRitual: React.FC<Props> = ({ onComplete }) => {
           </p>
 
           {/* Duration Pills */}
-          <div className="flex items-center justify-center gap-2 mb-10">
-            {([5, 10, 30, 60] as TimerDurationSec[]).map((d) => (
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
+            {([5, 10, 15, 30, 60] as TimerDurationSec[]).map((d) => (
               <button
                 key={d}
                 type="button"
@@ -109,7 +109,7 @@ export const DrawingTimerRitual: React.FC<Props> = ({ onComplete }) => {
                     : 'bg-turmericMist/40 border border-borderHairline text-warmUmber hover:text-espressoInk'
                 }`}
               >
-                {d}s {d === 30 && <span className="opacity-75 text-xs">(Default)</span>}
+                {d}s {d === 15 && <span className="opacity-75 text-xs">(Default)</span>}
               </button>
             ))}
           </div>
