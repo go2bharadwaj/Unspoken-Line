@@ -128,6 +128,12 @@ export const ProgressionChart: React.FC<Props> = ({ sessions }) => {
         </div>
       ) : (
         <>
+          {chartData.length === 1 && (
+            <p className="text-sm text-warmUmber mb-3">
+              Your first sketch is your starting point. Your lines form after your next session.
+            </p>
+          )}
+
           {/* Chart Graphic */}
           <div className="w-full h-64 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
