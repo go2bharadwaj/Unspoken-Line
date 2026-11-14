@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/sessions/{sessionId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['created_at', 'timer_duration_sec', 'scores', 'calm_anchor', 'aura_hex'])
+        && request.resource.data.keys().hasAll(['created_at', 'timer_duration_sec', 'scores'])
+        && request.resource.data.timer_duration_sec in [5, 10, 30, 60]
+        && request.resource.data.created_at == request.time
+        && request.resource.data.scores is map
+        && request.resource.data.scores.keys().hasOnly(['stress', 'anxiety', 'mental_fatigue', 'calm_flow', 'radiant_joy'])
+        && request.resource.data.scores.keys().hasAll(['stress', 'anxiety', 'mental_fatigue', 'calm_flow', 'radiant_joy'])
+        && request.resource.data.scores.stress is number && request.resource.data.scores.stress >= 0 && request.resource.data.scores.stress <= 1
+        && request.resource.data.scores.anxiety is number && request.resource.data.scores.anxiety >= 0 && request.resource.data.scores.anxiety <= 1
+        && request.resource.data.scores.mental_fatigue is number && request.resource.data.scores.mental_fatigue >= 0 && request.resource.data.scores.mental_fatigue <= 1
+        && request.resource.data.scores.calm_flow is number && request.resource.data.scores.calm_flow >= 0 && request.resource.data.scores.calm_flow <= 1
+        && request.resource.data.scores.radiant_joy is number && request.resource.data.scores.radiant_joy >= 0 && request.resource.data.scores.radiant_joy <= 1
+        && (!('calm_anchor' in request.resource.data) || request.resource.data.calm_anchor is bool)
+        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')));
+
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['calm_anchor', 'aura_hex'])
+        && (!('calm_anchor' in request.resource.data) || request.resource.data.calm_anchor is bool)
+        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')));
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
