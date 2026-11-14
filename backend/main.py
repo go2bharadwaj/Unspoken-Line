@@ -6,10 +6,11 @@ import os
 import sys
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+import ratelimit
 from ai import run_flash, run_jev
 from gate import (
     ACTIVITIES,
@@ -102,8 +103,16 @@ async def health_check() -> HealthResponse:
     response_model=AnalyzeSketchResponse,
     status_code=status.HTTP_200_OK,
 )
-async def analyze_sketch(req: AnalyzeSketchRequest) -> AnalyzeSketchResponse:
+async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> AnalyzeSketchResponse:
     """Performs RAM-only perceptual analysis of a timed physical sketch."""
+    # Caddy sets X-Forwarded-For; rightmost entry is the one the proxy saw, so it can't be spoofed.
+    ip = request.headers.get("x-forwarded-for", "").split(",")[-1].strip() or (
+        request.client.host if request.client else "unknown"
+    )
+    reason = ratelimit.check(ip)
+    if reason:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=reason)
+
     # Step 1: Decode & validate image buffer
     try:
         img = decode_image(req.image_base64)
