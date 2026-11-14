@@ -5,7 +5,6 @@ interface Creator {
   role: string;
   photo: string;
   linkedin: string;
-  bio: string;
 }
 
 // Alphabetical, identical cards: neither creator is ranked above the other.
@@ -16,14 +15,12 @@ const CREATORS: Creator[] = [
     role: "Co-creator",
     photo: "/creators/bharadwaj.png",
     linkedin: "https://www.linkedin.com/in/go2bharadwaj/",
-    bio: "Engineer building multimodal AI that brings vision, language and audio together, shaped by large-scale systems at Walmart Labs and open-source tools for learning and focus. Wants AI to work for the global good, widening who gets care rather than just what machines can do. Unspoken Line is a step toward that: a way to be heard when words won't come.",
   },
   {
     name: "Jayadeep Nukala",
     role: "Co-creator",
     photo: "/creators/jayadeep.png",
     linkedin: "https://www.linkedin.com/in/jayadeep-nukala/",
-    bio: "Software engineer who builds the backend systems, data pipelines and cloud infrastructure that keep products dependable, most recently shipping an enterprise testing platform at KAYA. Drawn to work where precision has real consequences. Here, that means keeping every reflection private, fast and safe to rely on.",
   },
 ];
 
@@ -38,7 +35,7 @@ const Avatar: React.FC<{ creator: Creator }> = ({ creator }) => {
   return failed ? (
     <div
       aria-hidden="true"
-      className="w-24 h-24 rounded-full bg-turmericMist/50 border border-borderHairline flex items-center justify-center font-serif text-2xl text-espressoInk"
+      className="w-14 h-14 sm:w-28 sm:h-28 rounded-full bg-turmericMist/50 border border-borderHairline flex items-center justify-center font-serif text-base sm:text-2xl text-espressoInk"
     >
       {initials}
     </div>
@@ -47,7 +44,7 @@ const Avatar: React.FC<{ creator: Creator }> = ({ creator }) => {
       src={creator.photo}
       alt={`Portrait of ${creator.name}`}
       onError={() => setFailed(true)}
-      className="w-24 h-24 rounded-full object-cover border border-borderHairline"
+      className="w-14 h-14 sm:w-28 sm:h-28 rounded-full object-cover border border-borderHairline"
     />
   );
 };
@@ -67,27 +64,26 @@ export const AboutCreators: React.FC = () => (
       About the Creators
     </h3>
 
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-xl mx-auto">
       {CREATORS.map((c) => (
         <article
           key={c.name}
-          className="rounded-3xl border border-borderHairline bg-canvasPaper p-6 flex flex-col items-center"
+          className="aspect-square rounded-3xl border border-borderHairline bg-canvasPaper p-3 sm:p-6 flex flex-col items-center justify-center"
         >
           <Avatar creator={c} />
-          <h4 className="font-serif text-xl text-espressoInk mt-4">{c.name}</h4>
-          <p className="text-[11px] uppercase tracking-widest text-warmUmber mt-1">
+          <h4 className="font-serif text-sm sm:text-xl text-espressoInk mt-2 sm:mt-3">
+            {c.name}
+          </h4>
+          <p className="text-[11px] uppercase tracking-widest text-warmUmber mt-0.5 sm:mt-1">
             {c.role}
-          </p>
-          <p className="text-sm text-espressoInk/80 leading-relaxed mt-4 flex-1">
-            {c.bio}
           </p>
           <a
             href={c.linkedin}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 text-xs text-warmUmber hover:text-peachTerracotta underline underline-offset-4 transition-colors"
+            className="mt-1.5 sm:mt-4 text-xs text-warmUmber hover:text-peachTerracotta underline underline-offset-4 transition-colors"
           >
-            LinkedIn
+            LinkedIn<span className="sr-only"> profile of {c.name}</span>
           </a>
         </article>
       ))}
