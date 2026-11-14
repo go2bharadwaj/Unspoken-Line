@@ -11,7 +11,7 @@ interface Creator {
 // Photos live in public/creators/; a missing file falls back to initials.
 const CREATORS: Creator[] = [
   {
-    name: "Bharadwaj",
+    name: "Bharadwaj Satyanarayana",
     role: "Co-creator",
     photo: "/creators/bharadwaj.png",
     linkedin: "https://www.linkedin.com/in/go2bharadwaj/",
@@ -35,7 +35,7 @@ const Avatar: React.FC<{ creator: Creator }> = ({ creator }) => {
   return failed ? (
     <div
       aria-hidden="true"
-      className="w-14 h-14 sm:w-28 sm:h-28 rounded-full bg-turmericMist/50 border border-borderHairline flex items-center justify-center font-serif text-base sm:text-2xl text-espressoInk"
+      className="w-12 h-12 sm:w-28 sm:h-28 rounded-full bg-turmericMist/50 border border-borderHairline flex items-center justify-center font-serif text-base sm:text-2xl text-espressoInk"
     >
       {initials}
     </div>
@@ -44,14 +44,14 @@ const Avatar: React.FC<{ creator: Creator }> = ({ creator }) => {
       src={creator.photo}
       alt={`Portrait of ${creator.name}`}
       onError={() => setFailed(true)}
-      className="w-14 h-14 sm:w-28 sm:h-28 rounded-full object-cover border border-borderHairline"
+      className="w-12 h-12 sm:w-28 sm:h-28 rounded-full object-cover border border-borderHairline"
     />
   );
 };
 
 export const AboutCreators: React.FC = () => (
   // Collapsed by default: returning users don't need to see it every visit
-  <details className="group w-full max-w-3xl mx-auto px-6 py-8 text-center">
+  <details className="group w-full max-w-3xl mx-auto sm:px-6 py-8 text-center">
     <summary className="list-none [&::-webkit-details-marker]:hidden inline-flex items-center gap-1.5 cursor-pointer text-xs uppercase tracking-widest text-warmUmber hover:text-espressoInk transition-colors">
       About
       <svg
@@ -76,7 +76,7 @@ export const AboutCreators: React.FC = () => (
           className="aspect-square rounded-3xl border border-borderHairline bg-canvasPaper p-3 sm:p-6 flex flex-col items-center justify-center"
         >
           <Avatar creator={c} />
-          <h4 className="font-serif text-sm sm:text-xl text-espressoInk mt-2 sm:mt-3">
+          <h4 className="font-serif text-sm leading-tight sm:text-xl text-espressoInk mt-1.5 sm:mt-3">
             {c.name}
           </h4>
           <p className="text-[11px] uppercase tracking-widest text-warmUmber mt-0.5 sm:mt-1">

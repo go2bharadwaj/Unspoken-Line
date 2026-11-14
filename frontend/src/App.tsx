@@ -111,6 +111,13 @@ export default function App() {
   }, []);
 
   const logoInHero = view === "landing" && !scrolled;
+
+  // Snap only on the three-screen landing: elsewhere the footer would be the sole snap point
+  // and mandatory snapping pins the page to the bottom (e.g. the results view on phones)
+  useEffect(() => {
+    document.documentElement.style.scrollSnapType =
+      view === "landing" ? "y mandatory" : "";
+  }, [view]);
   // Breathing radial wash: behind the message, and peeking up at the bottom of the logo screen
   const pulse = {
     className: "w-72 h-72 rounded-full pointer-events-none",
