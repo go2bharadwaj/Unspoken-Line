@@ -1,14 +1,14 @@
-import { useState, useEffect, useTransition } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { User } from 'firebase/auth';
+import { useState, useEffect, useTransition } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { User } from "firebase/auth";
 import {
   Activity,
   AnalyzeSketchResponse,
   EmotionScores,
   StoredSession,
   TimerDurationSec,
-} from './types';
-import { analyzeSketch } from './lib/api';
+} from "./types";
+import { analyzeSketch } from "./lib/api";
 import {
   firebaseEnabled,
   signInWithGoogle,
@@ -18,22 +18,17 @@ import {
   listSessions,
   markSession,
   clearHistory,
-} from './lib/firebase';
-import { DrawingTimerRitual } from './components/DrawingTimerRitual';
-import { PhotoCaptureCard } from './components/PhotoCaptureCard';
-import { AnalysisResultsView } from './components/AnalysisResultsView';
-import { ActivityPlayerModal } from './components/ActivityPlayerModal';
-import { ProgressionChart } from './components/ProgressionChart';
-import { PrivacyBadge } from './components/PrivacyBadge';
-import { CrisisSupportView } from './components/CrisisSupportView';
+} from "./lib/firebase";
+import { DrawingTimerRitual } from "./components/DrawingTimerRitual";
+import { PhotoCaptureCard } from "./components/PhotoCaptureCard";
+import { AnalysisResultsView } from "./components/AnalysisResultsView";
+import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
+import { ProgressionChart } from "./components/ProgressionChart";
+import { PrivacyBadge } from "./components/PrivacyBadge";
+import { CrisisSupportView } from "./components/CrisisSupportView";
 
 type ViewMode =
-  | 'landing'
-  | 'ritual'
-  | 'capture'
-  | 'analyzing'
-  | 'results'
-  | 'crisis';
+  "landing" | "ritual" | "capture" | "analyzing" | "results" | "crisis";
 
 function computeBaseline(sessions: StoredSession[]): EmotionScores | null {
   if (!sessions || sessions.length === 0) return null;
@@ -63,13 +58,14 @@ function computeBaseline(sessions: StoredSession[]): EmotionScores | null {
 }
 
 export default function App() {
-  const [view, setView] = useState<ViewMode>('landing');
+  const [view, setView] = useState<ViewMode>("landing");
   const [user, setUser] = useState<User | null>(null);
   const [sessions, setSessions] = useState<StoredSession[]>([]);
-  const [timerDurationSec, setTimerDurationSec] = useState<TimerDurationSec>(30);
+  const [timerDurationSec, setTimerDurationSec] =
+    useState<TimerDurationSec>(30);
   const [analysisResult, setAnalysisResult] =
     useState<AnalyzeSketchResponse | null>(null);
-  const [currentSessionId, setCurrentSessionId] = useState<string>('');
+  const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [captureMessage, setCaptureMessage] = useState<string | null>(null);
   const [crisisMessage, setCrisisMessage] = useState<string | null>(null);
   const [activeActivity, setActiveActivity] = useState<Activity | null>(null);
@@ -96,12 +92,42 @@ export default function App() {
     }
   };
 
+  const [needsSignIn, setNeedsSignIn] = useState<boolean>(false);
+  const [scrolled, setScrolled] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Hysteresis (32px in, 8px out) so the hero collapse can't flip the state back
+    const onScroll = () =>
+      setScrolled((s) => (s ? window.scrollY > 8 : window.scrollY > 32));
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const logoInHero = view === "landing" && !scrolled;
+  const logoTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 0.8, ease: [0.22, 1, 0.36, 1] as const };
+
   const handleSignIn = async () => {
     try {
-      await signInWithGoogle();
+      const signedIn = await signInWithGoogle();
+      if (signedIn && needsSignIn) {
+        setNeedsSignIn(false);
+        setView("ritual");
+      }
     } catch {
       // User cancelled or auth error
     }
+  };
+
+  const handleBeginSession = () => {
+    // shortcut: no Firebase config (local dev) keeps guest mode; backend /analyze is still unauthenticated
+    if (firebaseEnabled && !user) {
+      setNeedsSignIn(true);
+      return;
+    }
+    setView("ritual");
   };
 
   const handleSignOut = async () => {
@@ -115,11 +141,11 @@ export default function App() {
   const handleRitualComplete = (duration: TimerDurationSec) => {
     setTimerDurationSec(duration);
     setCaptureMessage(null);
-    setView('capture');
+    setView("capture");
   };
 
   const handleAnalyzeSketch = async (base64: string) => {
-    setView('analyzing');
+    setView("analyzing");
     setCaptureMessage(null);
 
     const baseline = computeBaseline(sessions);
@@ -127,12 +153,12 @@ export default function App() {
     try {
       const res = await analyzeSketch({
         image_base64: base64,
-        mime_type: 'image/jpeg',
+        mime_type: "image/jpeg",
         timer_duration_sec: timerDurationSec,
         user_baseline_scores: baseline,
       });
 
-      if (res.safety_status === 'SAFE') {
+      if (res.safety_status === "SAFE") {
         let savedId = `local_${Date.now()}`;
         if (res.merged_scores) {
           try {
@@ -148,31 +174,31 @@ export default function App() {
         setCurrentSessionId(savedId);
         setAnalysisResult(res);
         startTransition(() => {
-          setView('results');
+          setView("results");
         });
-      } else if (res.safety_status === 'CRISIS_SUPPORT') {
+      } else if (res.safety_status === "CRISIS_SUPPORT") {
         setCrisisMessage(res.retry_or_safety_message);
         startTransition(() => {
-          setView('crisis');
+          setView("crisis");
         });
       } else {
         // RETRY_CAPTURE or BLOCKED_CONTENT
         setCaptureMessage(
           res.retry_or_safety_message ||
-            'We could not read the sketch clearly. Please try again with brighter light or closer framing.'
+            "We could not read the sketch clearly. Please try again with brighter light or closer framing.",
         );
         startTransition(() => {
-          setView('capture');
+          setView("capture");
         });
       }
     } catch (err) {
       const msg =
         err instanceof Error
           ? err.message
-          : 'Unable to connect to the analysis service.';
+          : "Unable to connect to the analysis service.";
       setCaptureMessage(msg);
       startTransition(() => {
-        setView('capture');
+        setView("capture");
       });
     }
   };
@@ -200,8 +226,8 @@ export default function App() {
 
   const handleDoneResults = () => {
     setAnalysisResult(null);
-    setCurrentSessionId('');
-    setView('landing');
+    setCurrentSessionId("");
+    setView("landing");
   };
 
   const handleClearHistory = async () => {
@@ -217,61 +243,68 @@ export default function App() {
   return (
     <div className="min-h-screen bg-canvasPaper text-espressoInk font-sans flex flex-col justify-between selection:bg-turmericMist">
       {/* Top Header */}
-      <header className="w-full max-w-4xl mx-auto px-6 py-6 flex items-center justify-between z-30">
-        <button
-          type="button"
-          onClick={() => {
-            if (view !== 'analyzing') {
-              setAnalysisResult(null);
-              setView('landing');
-            }
-          }}
-          className="text-left cursor-pointer group"
-        >
-          <h1 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-espressoInk group-hover:text-peachTerracotta transition-colors">
-            Unspoken Line
-          </h1>
-          <p className="text-[11px] uppercase tracking-widest text-warmUmber">
-            Non-Verbal Mindfulness Sanctuary
-          </p>
-        </button>
+      <header className="sticky top-0 w-full bg-canvasPaper/85 backdrop-blur-sm z-30">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => {
+              if (view !== "analyzing") {
+                setAnalysisResult(null);
+                setView("landing");
+                window.scrollTo({ top: 0 });
+              }
+            }}
+            aria-label="Unspoken Line home"
+            className="h-12 sm:h-14 cursor-pointer"
+          >
+            {!logoInHero && (
+              <motion.img
+                layoutId="brand-logo"
+                transition={logoTransition}
+                src="/logo.png"
+                alt="Unspoken Line"
+                className="h-full w-auto mix-blend-multiply"
+              />
+            )}
+          </button>
 
-        <div className="flex items-center gap-3">
-          {firebaseEnabled ? (
-            user ? (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-warmUmber hidden sm:inline">
-                  {user.displayName || user.email || 'Sanctuary Member'}
-                </span>
+          <div className="flex items-center gap-3">
+            {firebaseEnabled ? (
+              user ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-warmUmber hidden sm:inline">
+                    {user.displayName || user.email || "Sanctuary Member"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="px-3.5 py-1.5 rounded-full border border-borderHairline text-warmUmber hover:text-espressoInk hover:bg-turmericMist/30 transition-colors text-xs cursor-pointer"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={handleSignOut}
-                  className="px-3.5 py-1.5 rounded-full border border-borderHairline text-warmUmber hover:text-espressoInk hover:bg-turmericMist/30 transition-colors text-xs cursor-pointer"
+                  onClick={handleSignIn}
+                  className="px-4 py-1.5 rounded-full border border-peachTerracotta text-espressoInk hover:bg-turmericMist/40 transition-colors text-xs font-medium cursor-pointer"
                 >
-                  Sign Out
+                  Sign in with Google
                 </button>
-              </div>
+              )
             ) : (
-              <button
-                type="button"
-                onClick={handleSignIn}
-                className="px-4 py-1.5 rounded-full border border-peachTerracotta text-espressoInk hover:bg-turmericMist/40 transition-colors text-xs font-medium cursor-pointer"
-              >
-                Sign in with Google
-              </button>
-            )
-          ) : (
-            <span className="px-3 py-1 rounded-full bg-turmericMist/40 border border-borderHairline text-[11px] text-warmUmber tracking-wide">
-              Guest Sanctuary
-            </span>
-          )}
+              <span className="px-3 py-1 rounded-full bg-turmericMist/40 border border-borderHairline text-[11px] text-warmUmber tracking-wide">
+                Guest Sanctuary
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Content Area with 700ms sanctuary cross-fade */}
       <main className="flex-1 w-full max-w-4xl mx-auto flex flex-col items-center justify-center relative">
         <AnimatePresence mode="wait">
-          {view === 'landing' && (
+          {view === "landing" && (
             <motion.div
               key="landing"
               initial={{ opacity: 0 }}
@@ -281,15 +314,33 @@ export default function App() {
                 duration: 0.7,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="w-full flex flex-col items-center text-center px-6 py-8"
+              className="w-full flex flex-col items-center text-center px-6 pb-8"
             >
+              {/* Logo hero: fills the first screen, then collapses as the logo flies to the header */}
+              <motion.div
+                className="w-full flex items-center justify-center"
+                initial={false}
+                animate={{ height: logoInHero ? "52svh" : "8svh" }}
+                transition={logoTransition}
+              >
+                {logoInHero && (
+                  <motion.img
+                    layoutId="brand-logo"
+                    transition={logoTransition}
+                    src="/logo.png"
+                    alt="Unspoken Line"
+                    className="w-[min(88vw,600px)] h-auto mix-blend-multiply"
+                  />
+                )}
+              </motion.div>
+
               {/* Breathing Radial Wash Background */}
               <div className="relative w-full max-w-lg flex items-center justify-center my-6">
                 <motion.div
                   className="w-72 h-72 sm:w-88 sm:h-88 rounded-full pointer-events-none absolute"
                   style={{
                     background:
-                      'radial-gradient(circle, rgba(245, 230, 196, 0.7) 0%, rgba(232, 153, 122, 0.35) 60%, rgba(250, 246, 238, 0) 100%)',
+                      "radial-gradient(circle, rgba(245, 230, 196, 0.7) 0%, rgba(232, 153, 122, 0.35) 60%, rgba(250, 246, 238, 0) 100%)",
                   }}
                   animate={{
                     scale: shouldReduceMotion ? 1 : [0.92, 1.08, 0.92],
@@ -297,7 +348,7 @@ export default function App() {
                   transition={{
                     duration: 6,
                     repeat: Infinity,
-                    ease: 'easeInOut',
+                    ease: "easeInOut",
                   }}
                 />
 
@@ -309,16 +360,26 @@ export default function App() {
                     A cognitive imprint on paper is not random.
                   </h2>
                   <p className="text-espressoInk/80 text-sm sm:text-base leading-relaxed mb-8 max-w-sm mx-auto">
-                    Take a pen and paper. In seconds of non-verbal drawing, your hand reveals what words keep silent.
+                    Take a pen and paper. In seconds of non-verbal drawing, your
+                    hand reveals what words keep silent.
                   </p>
 
                   <button
                     type="button"
-                    onClick={() => setView('ritual')}
+                    onClick={needsSignIn ? handleSignIn : handleBeginSession}
                     className="px-8 py-4 rounded-full bg-peachTerracotta text-canvasPaper font-medium hover:bg-peachTerracotta/90 transition-colors shadow-none text-base cursor-pointer"
                   >
-                    Begin Session
+                    {needsSignIn ? "Sign in with Google" : "Begin Session"}
                   </button>
+                  {needsSignIn && (
+                    <p
+                      role="status"
+                      className="mt-4 text-sm text-warmUmber max-w-xs mx-auto"
+                    >
+                      Sign in first so your sketches are saved to you. It takes
+                      just a few seconds with your Google account.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -367,7 +428,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {view === 'ritual' && (
+          {view === "ritual" && (
             <motion.div
               key="ritual"
               initial={{ opacity: 0 }}
@@ -383,7 +444,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {view === 'capture' && (
+          {view === "capture" && (
             <motion.div
               key="capture"
               initial={{ opacity: 0 }}
@@ -403,7 +464,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {view === 'analyzing' && (
+          {view === "analyzing" && (
             <motion.div
               key="analyzing"
               initial={{ opacity: 0 }}
@@ -424,7 +485,7 @@ export default function App() {
                 transition={{
                   duration: 3,
                   repeat: Infinity,
-                  ease: 'easeInOut',
+                  ease: "easeInOut",
                 }}
               >
                 <div className="w-12 h-12 rounded-full bg-sunlitAmber/50" />
@@ -434,12 +495,13 @@ export default function App() {
                 Listening to your lines...
               </h3>
               <p className="text-warmUmber text-sm max-w-xs">
-                Analyzing stroke density, cadence, and spatial openness in memory.
+                Analyzing stroke density, cadence, and spatial openness in
+                memory.
               </p>
             </motion.div>
           )}
 
-          {view === 'results' && analysisResult && (
+          {view === "results" && analysisResult && (
             <motion.div
               key="results"
               initial={{ opacity: 0 }}
@@ -459,7 +521,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {view === 'crisis' && (
+          {view === "crisis" && (
             <motion.div
               key="crisis"
               initial={{ opacity: 0 }}
@@ -475,7 +537,7 @@ export default function App() {
                 message={crisisMessage}
                 onReturn={() => {
                   setCrisisMessage(null);
-                  setView('landing');
+                  setView("landing");
                 }}
               />
             </motion.div>
