@@ -57,7 +57,10 @@ class AnalyzeSketchResponse(BaseModel):
 
 
 class FlashResult(BaseModel):
-    visual_reflection_text: str
+    visual_reflection_text: str = Field(
+        ...,
+        description="Free-form answer to: What does this drawing say about my current mental state?",
+    )
     stroke_evidence_bullets: list[str]
     flash_scores: EmotionScores
     safety_flag: Literal[

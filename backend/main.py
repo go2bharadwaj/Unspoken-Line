@@ -253,7 +253,8 @@ async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> Analyze
         )
 
     # Step 6: Merger, classification, trend analysis, and clinical scrub
-    merged = merge_scores(jev_res.scores, flash_res.flash_scores)
+    # Jev's fallback is only a reshaped stroke score, so blend only when the real Jev answered
+    merged = merge_scores(jev_res.scores, flash_res.flash_scores) if jev_src == "jev" else flash_res.flash_scores
     prim = primary_class(merged)
     conf = confidence(jev_res, flash_res.flash_scores, jev_is_real=(jev_src == "jev"))
     raw_trend = trend_text(merged, req.user_baseline_scores, req.timer_duration_sec)
