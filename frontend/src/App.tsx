@@ -32,6 +32,7 @@ import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
 import { PrivacyBadge } from "./components/PrivacyBadge";
 import { AboutCreators } from "./components/AboutCreators";
+import { InstallApp } from "./components/InstallApp";
 import { version } from "../package.json";
 import { CrisisSupportView } from "./components/CrisisSupportView";
 
@@ -436,6 +437,24 @@ export default function App() {
     }
   };
 
+  const currentSession = sessions.find((s) => s.id === currentSessionId);
+
+  const handleRate = async (rating: number) => {
+    const id = currentSessionId;
+    const previous = currentSession?.rating;
+    const setRating = (r: number | undefined) =>
+      setSessions((all) =>
+        all.map((s) => (s.id === id ? { ...s, rating: r } : s)),
+      );
+    setRating(rating); // show it straight away
+    try {
+      await markSession(user, id, { rating });
+    } catch (err) {
+      setRating(previous);
+      throw err;
+    }
+  };
+
   const handleDoneResults = () => {
     setAnalysisResult(null);
     setSketchPhoto(null);
@@ -472,14 +491,14 @@ export default function App() {
                   window.scrollTo({ top: 0 });
                 }
               }}
-              aria-label="Unspoken Line home"
+              aria-label="Unspoken Lines home"
               className="h-12 sm:h-14 cursor-pointer"
             >
               <motion.img
                 layoutId="brand-logo"
                 transition={logoTransition}
                 src="/logo.png"
-                alt="Unspoken Line"
+                alt="Unspoken Lines"
                 className="h-full w-auto"
               />
             </button>
@@ -550,7 +569,7 @@ export default function App() {
                         layoutId="brand-logo"
                         transition={logoTransition}
                         src="/logo.png"
-                        alt="Unspoken Line"
+                        alt="Unspoken Lines"
                         className="w-[min(88vw,600px)] h-auto"
                       />
                     </div>
@@ -676,6 +695,7 @@ export default function App() {
                 )}
 
                 <AboutCreators />
+                <InstallApp />
               </section>
             </motion.div>
           )}
@@ -780,6 +800,8 @@ export default function App() {
                     ? sketchPhoto.url
                     : undefined
                 }
+                rating={currentSession?.rating}
+                onRate={currentSession ? handleRate : undefined}
               />
             </motion.div>
           )}
@@ -832,7 +854,7 @@ export default function App() {
           role="status"
           className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 flex items-center justify-between gap-3 rounded-full border border-borderHairline bg-canvasPaper shadow-sm pl-5 pr-2 py-2 text-sm text-espressoInk"
         >
-          <span>A new version of Unspoken Line is ready.</span>
+          <span>A new version of Unspoken Lines is ready.</span>
           <span className="flex items-center gap-1">
             <button
               type="button"
@@ -864,7 +886,7 @@ export default function App() {
 
       {/* Footer (snap-end makes the page bottom a resting point under mandatory snap) */}
       <footer className="snap-end w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-warmUmber/60 border-t border-borderHairline/40">
-        Unspoken Line · Non-verbal mindfulness sanctuary · Privacy-first · v
+        Unspoken Lines · Non-verbal mindfulness sanctuary · Privacy-first · v
         {version}
       </footer>
     </div>

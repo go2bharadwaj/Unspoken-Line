@@ -5,6 +5,7 @@ import {
   Activity,
   EmotionKey,
   EmotionScores,
+  RATING_CHOICES,
 } from '../types';
 import { LEARN_MORE, getActivitiesForClass } from '../lib/activities';
 import { StreamedParagraphs } from './StreamedParagraphs';
@@ -17,6 +18,10 @@ interface Props {
   streamText?: boolean;
   /** The photo just analyzed, held only in this tab's memory; past readings have none */
   photoUrl?: string;
+  /** This reading's accuracy rating, if given */
+  rating?: number;
+  /** Absent when the session wasn't saved, so there is nothing to attach a rating to */
+  onRate?: (rating: number) => Promise<void>;
 }
 
 const SCORE_CONFIGS: Array<{
@@ -37,7 +42,18 @@ export const AnalysisResultsView: React.FC<Props> = ({
   onDone,
   streamText = false,
   photoUrl,
+  rating,
+  onRate,
 }) => {
+  const [ratingError, setRatingError] = useState(false);
+  const rate = async (n: number) => {
+    setRatingError(false);
+    try {
+      await onRate?.(n);
+    } catch {
+      setRatingError(true);
+    }
+  };
   const [learnMoreOpen, setLearnMoreOpen] = useState(false);
   // The progression part follows the reading, like a second paragraph being written
   const [readingDone, setReadingDone] = useState(!streamText);
@@ -314,9 +330,47 @@ export const AnalysisResultsView: React.FC<Props> = ({
         </button>
       </div>
 
+      {/* Accuracy rating: quiet, at the bottom */}
+      {onRate && (
+        <section
+          aria-labelledby="rating-label"
+          className="flex flex-col items-center gap-2 text-center"
+        >
+          <span id="rating-label" className="text-xs text-warmUmber">
+            {rating ? `You rated this reading ${rating} out of 10` : 'How accurate was this reading?'}
+          </span>
+          <div className="flex flex-wrap justify-center gap-1">
+            {RATING_CHOICES.map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => rate(n)}
+                aria-pressed={rating === n}
+                aria-label={`${n} out of 10`}
+                className={`w-7 h-7 rounded-full text-[11px] transition-colors cursor-pointer ${
+                  rating === n
+                    ? 'bg-peachTerracotta text-canvasPaper'
+                    : 'border border-borderHairline text-warmUmber/80 hover:text-espressoInk hover:border-warmUmber/50'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] text-warmUmber/60">
+            1 is way off, 10 is spot on. You can't give it a 7.
+          </span>
+          {ratingError && (
+            <span role="alert" className="text-[11px] text-blushClay">
+              Couldn't save your rating. Try again.
+            </span>
+          )}
+        </section>
+      )}
+
       {/* Medical Device Footnote */}
       <footer className="text-center text-xs text-warmUmber/70 pt-4 pb-8">
-        Unspoken Line is not a medical device. Scores describe visual drawing dynamics, not personal health.
+        Unspoken Lines is not a medical device. Scores describe visual drawing dynamics, not personal health.
       </footer>
     </div>
   );

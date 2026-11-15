@@ -1,4 +1,4 @@
-# Unspoken Line
+# Unspoken Lines
 
 A privacy-first, non-verbal mindfulness progressive web application (PWA). The user draws on real paper for a timed window, a singing-bowl chime sounds, they photograph the sketch, and the backend reads the strokes into five non-clinical emotion scores. The photo lives only in RAM; only numeric scores, timer duration, and timestamps are saved.
 
