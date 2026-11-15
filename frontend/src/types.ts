@@ -42,7 +42,16 @@ export type InteractionType =
   | 'INFINITY_TRACER'
   | 'GOLDEN_CAPSULE'
   | 'WATERCOLOR_BLOOM'
-  | 'RADIAL_BLOOM';
+  | 'RADIAL_BLOOM'
+  // Evidence-pack types, all rendered by PackActivity
+  | 'BREATH_PACER'
+  | 'GUIDED_STEPS'
+  | 'TEXT_PROMPT'
+  | 'CHECKLIST'
+  | 'DRAWING_CANVAS'
+  | 'AUDIO_PLAYER'
+  | 'TIMER'
+  | 'OFFSCREEN_CARD';
 
 export type TimerDurationSec = 5 | 10 | 15 | 30 | 60;
 
@@ -52,6 +61,13 @@ export interface Activity {
   subtitle?: string;
   duration_sec: number;
   interaction_type: InteractionType;
+  /** Evidence-pack activities only. */
+  steps?: string[];
+  pacer?: { inhale_s: number; second_inhale_s?: number; hold_s: number; exhale_s: number };
+  grade?: 'A' | 'B' | 'C';
+  citation?: string;
+  /** True when duration_sec is a short taste of a longer tested practice. */
+  taster?: boolean;
 }
 
 export interface Telemetry {

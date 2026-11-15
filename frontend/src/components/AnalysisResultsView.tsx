@@ -7,7 +7,7 @@ import {
   EmotionScores,
   RATING_CHOICES,
 } from '../types';
-import { LEARN_MORE, getActivitiesForClass } from '../lib/activities';
+import { LEARN_MORE, formatDuration, getActivitiesForClass } from '../lib/activities';
 import { StreamedParagraphs } from './StreamedParagraphs';
 
 interface Props {
@@ -57,6 +57,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
   const [learnMoreOpen, setLearnMoreOpen] = useState(false);
   // The progression part follows the reading, like a second paragraph being written
   const [readingDone, setReadingDone] = useState(!streamText);
+  const [showAllPractices, setShowAllPractices] = useState(false);
 
   const scores: EmotionScores = result.merged_scores || {
     stress: 0.2,
@@ -155,7 +156,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
           Three short exercises for {primaryClass}. Tap one to begin.
         </p>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {activities.slice(0, 3).map((act) => (
+          {(showAllPractices ? activities : activities.slice(0, 3)).map((act) => (
             <button
               key={act.id}
               type="button"
@@ -170,12 +171,21 @@ export const AnalysisResultsView: React.FC<Props> = ({
                   {act.title}
                 </span>
                 <span className="block text-[11px] sm:text-xs text-warmUmber mt-0.5">
-                  {act.duration_sec}s
+                  {formatDuration(act.duration_sec)}
                 </span>
               </span>
             </button>
           ))}
         </div>
+        {activities.length > 3 && (
+          <button
+            type="button"
+            onClick={() => setShowAllPractices((v) => !v)}
+            className="mt-3 text-sm text-warmUmber hover:text-espressoInk underline cursor-pointer"
+          >
+            {showAllPractices ? 'Show fewer' : `More practices (${activities.length - 3})`}
+          </button>
+        )}
       </section>
 
       {/* Emotion scores */}

@@ -18,12 +18,16 @@ import { InfinityTracer } from './activities/InfinityTracer';
 import { GoldenCapsule } from './activities/GoldenCapsule';
 import { WatercolorBloom } from './activities/WatercolorBloom';
 import { RadialBloom } from './activities/RadialBloom';
+import { PackActivity } from './activities/PackActivity';
+import { formatDuration } from '../lib/activities';
 
 interface ActivityComponentProps {
   sessionId: string;
   scores: EmotionScores;
   durationSec: number;
   onMark: (patch: { calm_anchor?: boolean; aura_hex?: string }) => void;
+  activity: Activity;
+  onClose: () => void;
 }
 
 const ACTIVITY_COMPONENTS: Record<
@@ -45,6 +49,14 @@ const ACTIVITY_COMPONENTS: Record<
   GOLDEN_CAPSULE: GoldenCapsule,
   WATERCOLOR_BLOOM: WatercolorBloom,
   RADIAL_BLOOM: RadialBloom,
+  BREATH_PACER: PackActivity,
+  GUIDED_STEPS: PackActivity,
+  TEXT_PROMPT: PackActivity,
+  CHECKLIST: PackActivity,
+  DRAWING_CANVAS: PackActivity,
+  AUDIO_PLAYER: PackActivity,
+  TIMER: PackActivity,
+  OFFSCREEN_CARD: PackActivity,
 };
 
 interface Props {
@@ -140,6 +152,8 @@ export const ActivityPlayerModal: React.FC<Props> = ({
             scores={scores}
             durationSec={activity.duration_sec}
             onMark={onMark}
+            activity={activity}
+            onClose={onClose}
           />
         ) : (
           <p className="text-warmUmber">Activity details unavailable.</p>
@@ -149,7 +163,7 @@ export const ActivityPlayerModal: React.FC<Props> = ({
       {/* Bottom spacer for balance */}
       <div className="w-full p-4 text-center">
         <p className="text-xs text-warmUmber/60">
-          Takes {activity.duration_sec} seconds · Closes gently with a singing bowl
+          Takes {formatDuration(activity.duration_sec)} · Closes gently with a singing bowl
         </p>
       </div>
     </div>

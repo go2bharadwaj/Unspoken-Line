@@ -1,0 +1,677 @@
+{
+  "Stress": [
+    {
+      "id": "stress_slow_breathing",
+      "title": "Slow breathing",
+      "subtitle": "Breathe in for 4, out for 6",
+      "duration_sec": 90,
+      "interaction_type": "BREATH_PACER",
+      "steps": [
+        "Sit comfortably and let your shoulders drop.",
+        "Breathe in gently through your nose for 4 seconds.",
+        "Breathe out slowly for 6 seconds.",
+        "Keep it soft. No need to hold your breath."
+      ],
+      "grade": "A",
+      "citation": "Fincham et al., 2023",
+      "taster": true,
+      "pacer": {
+        "inhale_s": 4,
+        "hold_s": 0,
+        "exhale_s": 6
+      }
+    },
+    {
+      "id": "stress_progressive_muscle_relaxation",
+      "title": "Tense and release",
+      "subtitle": "Let go of tension, one area at a time",
+      "duration_sec": 90,
+      "interaction_type": "GUIDED_STEPS",
+      "steps": [
+        "Make fists for 5 seconds, then let go for 10.",
+        "Lift your shoulders to your ears for 5 seconds, then drop them.",
+        "Scrunch your face for 5 seconds, then relax it.",
+        "Notice the difference between tense and relaxed."
+      ],
+      "grade": "A",
+      "citation": "Toussaint et al., 2021",
+      "taster": true
+    },
+    {
+      "id": "stress_music_listening_calming",
+      "title": "Calm music break",
+      "subtitle": "Five minutes of music you find soothing",
+      "duration_sec": 90,
+      "interaction_type": "AUDIO_PLAYER",
+      "steps": [
+        "Pick a calm track you like.",
+        "Close your eyes or look somewhere soft.",
+        "Just listen until the timer ends."
+      ],
+      "grade": "A",
+      "citation": "de Witte et al., 2020",
+      "taster": true
+    },
+    {
+      "id": "stress_cyclic_sighing",
+      "title": "Physiological sigh",
+      "subtitle": "Double inhale, long slow exhale",
+      "duration_sec": 90,
+      "interaction_type": "BREATH_PACER",
+      "steps": [
+        "Breathe in through your nose.",
+        "Take a second, short sip of air on top.",
+        "Breathe out slowly and fully through your mouth.",
+        "Repeat at a comfortable pace."
+      ],
+      "grade": "A",
+      "citation": "Balban et al., 2023",
+      "taster": true,
+      "pacer": {
+        "inhale_s": 2,
+        "second_inhale_s": 1,
+        "hold_s": 0,
+        "exhale_s": 6
+      }
+    },
+    {
+      "id": "stress_third_person_self_talk",
+      "title": "Talk to yourself like a friend",
+      "subtitle": "Use your own name to get some distance",
+      "duration_sec": 90,
+      "interaction_type": "TEXT_PROMPT",
+      "steps": [
+        "Think about what's stressing you.",
+        "Write two sentences about it using your name instead of 'I', e.g. 'Sam is worried because…'.",
+        "Add one sentence of advice you'd give a friend in Sam's place."
+      ],
+      "grade": "B",
+      "citation": "Kross et al., 2014",
+      "taster": true
+    },
+    {
+      "id": "stress_self_compassion_exercise",
+      "title": "Kind words to yourself",
+      "subtitle": "A short self-compassion pause",
+      "duration_sec": 90,
+      "interaction_type": "GUIDED_STEPS",
+      "steps": [
+        "Notice: 'This is a hard moment.'",
+        "Remember: 'Lots of people feel this way.'",
+        "Offer yourself one kind sentence, the way you would to a friend."
+      ],
+      "grade": "B",
+      "citation": "Ferrari et al., 2019",
+      "taster": true
+    },
+    {
+      "id": "stress_write_plan_todo",
+      "title": "Get it out of your head",
+      "subtitle": "List what's on your plate and the very next step",
+      "duration_sec": 90,
+      "interaction_type": "CHECKLIST",
+      "steps": [
+        "List the things on your mind.",
+        "For one of them, write the very next small step and when you'll do it.",
+        "Let the list hold the rest for now."
+      ],
+      "grade": "A",
+      "citation": "Scullin et al., 2018",
+      "taster": true
+    },
+    {
+      "id": "stress_guided_imagery",
+      "title": "Picture a calm place",
+      "subtitle": "A short guided visualisation",
+      "duration_sec": 90,
+      "interaction_type": "GUIDED_STEPS",
+      "steps": [
+        "Close your eyes and picture a place where you feel at ease.",
+        "Notice what you can see, hear and feel there.",
+        "Stay with it for a few slow breaths."
+      ],
+      "grade": "A",
+      "citation": "Toussaint et al., 2021",
+      "taster": true
+    },
+    {
+      "id": "stress_watch_comedy",
+      "title": "Something funny",
+      "subtitle": "A few minutes of comedy you enjoy",
+      "duration_sec": 600,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Watch or listen to something that usually makes you laugh.",
+        "Come back and tap done when you're finished."
+      ],
+      "grade": "A",
+      "citation": "Kramer & Leitao, 2023",
+      "taster": false
+    },
+    {
+      "id": "stress_brisk_walk_10min",
+      "title": "Ten-minute walk",
+      "subtitle": "A brisk walk at your own pace",
+      "duration_sec": 600,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Head outside or walk around indoors.",
+        "Pick a pace that feels brisk but comfortable.",
+        "Tap done when you're back."
+      ],
+      "grade": "B",
+      "citation": "Thayer, 1987",
+      "taster": false
+    }
+  ],
+  "Anxiety": [
+    {
+      "id": "anxiety_slow_breathing",
+      "title": "Slow breathing",
+      "subtitle": "Breathe in for 4, out for 6",
+      "duration_sec": 90,
+      "interaction_type": "BREATH_PACER",
+      "steps": [
+        "Sit comfortably and let your shoulders drop.",
+        "Breathe in gently through your nose for 4 seconds.",
+        "Breathe out slowly for 6 seconds.",
+        "Keep it soft. No need to hold your breath."
+      ],
+      "grade": "A",
+      "citation": "Fincham et al., 2023",
+      "taster": true,
+      "pacer": {
+        "inhale_s": 4,
+        "hold_s": 0,
+        "exhale_s": 6
+      }
+    },
+    {
+      "id": "anxiety_progressive_muscle_relaxation",
+      "title": "Tense and release",
+      "subtitle": "Let go of tension, one area at a time",
+      "duration_sec": 90,
+      "interaction_type": "GUIDED_STEPS",
+      "steps": [
+        "Make fists for 5 seconds, then let go for 10.",
+        "Lift your shoulders to your ears for 5 seconds, then drop them.",
+        "Scrunch your face for 5 seconds, then relax it.",
+        "Notice the difference between tense and relaxed."
+      ],
+      "grade": "A",
+      "citation": "Manzoni et al., 2008",
+      "taster": true
+    },
+    {
+      "id": "anxiety_colouring_structured",
+      "title": "Colour a mandala",
+      "subtitle": "Fill in a pattern, no skill needed",
+      "duration_sec": 90,
+      "interaction_type": "DRAWING_CANVAS",
+      "steps": [
+        "Pick any colours you like.",
+        "Fill in the shapes at your own pace.",
+        "There's no right or wrong way."
+      ],
+      "grade": "B",
+      "citation": "Mantzios & Giannou, 2018",
+      "taster": true
+    },
+    {
+      "id": "anxiety_worry_postponement",
+      "title": "Park the worry",
+      "subtitle": "Write it down and set a time to think about it later",
+      "duration_sec": 90,
+      "interaction_type": "TEXT_PROMPT",
+      "steps": [
+        "Write the worry in one line.",
+        "Pick a 15-minute 'worry time' later today.",
+        "Until then, when it comes back, remind yourself it's parked."
+      ],
+      "grade": "B",
+      "citation": "Dippel et al., 2023",
+      "taster": true
+    },
+    {
+      "id": "anxiety_self_compassion_exercise",
+      "title": "Kind words to yourself",
+      "subtitle": "A short self-compassion pause",
+      "duration_sec": 90,
+      "interaction_type": "GUIDED_STEPS",
+      "steps": [
+        "Notice: 'This is a hard moment.'",
+        "Remember: 'Lots of people feel this way.'",
+        "Offer yourself one kind sentence, the way you would to a friend."
+      ],
+      "grade": "B",
+      "citation": "Ferrari et al., 2019",
+      "taster": true
+    },
+    {
+      "id": "anxiety_third_person_self_talk",
+      "title": "Talk to yourself like a friend",
+      "subtitle": "Use your own name to get some distance",
+      "duration_sec": 90,
+      "interaction_type": "TEXT_PROMPT",
+      "steps": [
+        "Think about what's worrying you.",
+        "Write two sentences about it using your name instead of 'I'.",
+        "Add one sentence of advice you'd give a friend in your place."
+      ],
+      "grade": "B",
+      "citation": "Kross et al., 2014",
+      "taster": true
+    },
+    {
+      "id": "anxiety_write_plan_todo",
+      "title": "Next small step",
+      "subtitle": "Turn one worry into a plan",
+      "duration_sec": 90,
+      "interaction_type": "CHECKLIST",
+      "steps": [
+        "Write what you're worried might happen.",
+        "Write one small thing you can do about it, and when.",
+        "If there's nothing to do, note that too and let it rest."
+      ],
+      "grade": "B",
+      "citation": "Scullin et al., 2018",
+      "taster": true
+    },
+    {
+      "id": "anxiety_music_listening_calming",
+      "title": "Calm music break",
+      "subtitle": "Five minutes of music you find soothing",
+      "duration_sec": 90,
+      "interaction_type": "AUDIO_PLAYER",
+      "steps": [
+        "Pick a calm track you like.",
+        "Close your eyes or look somewhere soft.",
+        "Just listen until the timer ends."
+      ],
+      "grade": "B",
+      "citation": "Harney et al., 2023",
+      "taster": true
+    },
+    {
+      "id": "anxiety_moderate_exercise",
+      "title": "Get moving",
+      "subtitle": "20 minutes of exercise you enjoy, at a comfortable pace",
+      "duration_sec": 1200,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Pick something you enjoy: a brisk walk, cycling, a home workout.",
+        "Keep the pace comfortable; you should still be able to talk.",
+        "Stop if you feel chest pain, dizziness or unusual breathlessness.",
+        "Tap done when you're back."
+      ],
+      "grade": "A",
+      "citation": "Ensari et al., 2015",
+      "taster": false
+    }
+  ],
+  "Mental Fatigue": [
+    {
+      "id": "mental_fatigue_micro_break",
+      "title": "Proper micro-break",
+      "subtitle": "Step away from the screen for a few minutes",
+      "duration_sec": 90,
+      "interaction_type": "TIMER",
+      "steps": [
+        "Look away from your screen.",
+        "Stretch, get a drink or look out of a window.",
+        "Come back when the timer ends."
+      ],
+      "grade": "A",
+      "citation": "Albulescu et al., 2022",
+      "taster": true
+    },
+    {
+      "id": "mental_fatigue_movement_breaks",
+      "title": "Stand up and move",
+      "subtitle": "A few minutes of light movement",
+      "duration_sec": 90,
+      "interaction_type": "GUIDED_STEPS",
+      "steps": [
+        "Stand up and roll your shoulders.",
+        "Walk around the room or march on the spot.",
+        "Reach up high, then shake out your arms."
+      ],
+      "grade": "A",
+      "citation": "Bergouignan et al., 2016",
+      "taster": true
+    },
+    {
+      "id": "mental_fatigue_brisk_walk_10min",
+      "title": "Ten-minute walk",
+      "subtitle": "A brisk walk for a lift in energy",
+      "duration_sec": 600,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Head outside if you can.",
+        "Walk briskly but comfortably.",
+        "Tap done when you're back."
+      ],
+      "grade": "B",
+      "citation": "Thayer, 1987",
+      "taster": false
+    },
+    {
+      "id": "mental_fatigue_nap_short",
+      "title": "Short power nap",
+      "subtitle": "Ten minutes, set an alarm",
+      "duration_sec": 600,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Find somewhere you can lie down or rest your head.",
+        "Set an alarm for 10 minutes.",
+        "Not in the late afternoon or evening if it affects your sleep."
+      ],
+      "grade": "A",
+      "citation": "Boukhris et al., 2026",
+      "taster": false
+    },
+    {
+      "id": "mental_fatigue_nature_sitting",
+      "title": "Green view",
+      "subtitle": "Sit somewhere green, or look at trees through a window",
+      "duration_sec": 600,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Find a green spot or a window with a view of trees or plants.",
+        "Let your eyes rest on it without your phone.",
+        "Tap done when you're ready."
+      ],
+      "grade": "A",
+      "citation": "Meredith et al., 2020",
+      "taster": false
+    },
+    {
+      "id": "mental_fatigue_daylight_exposure",
+      "title": "Get some daylight",
+      "subtitle": "Spend a few minutes in bright daylight",
+      "duration_sec": 900,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Step outside or sit by a bright window during the day.",
+        "Stay for a few minutes.",
+        "Tap done when you're back."
+      ],
+      "grade": "B",
+      "citation": "Smolders et al., 2012",
+      "taster": false
+    },
+    {
+      "id": "mental_fatigue_stair_walking",
+      "title": "Take the stairs",
+      "subtitle": "Ten minutes of easy stair walking",
+      "duration_sec": 600,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Walk up and down a flight of stairs at a gentle pace.",
+        "Hold the rail and stop if you feel unwell.",
+        "Tap done when you're finished."
+      ],
+      "grade": "A",
+      "citation": "Randolph & O'Connor, 2017",
+      "taster": false
+    },
+    {
+      "id": "mental_fatigue_free_dancing",
+      "title": "Dance it out",
+      "subtitle": "One upbeat song, move however you like",
+      "duration_sec": 90,
+      "interaction_type": "AUDIO_PLAYER",
+      "steps": [
+        "Pick a song you like.",
+        "Move however feels good.",
+        "No one's watching."
+      ],
+      "grade": "C",
+      "citation": "Campion & Levita, 2014",
+      "taster": true
+    }
+  ],
+  "Calm Flow": [
+    {
+      "id": "calm_flow_savoring",
+      "title": "Savour this moment",
+      "subtitle": "Notice what feels good right now",
+      "duration_sec": 90,
+      "interaction_type": "TEXT_PROMPT",
+      "steps": [
+        "Notice one thing you can see, hear or feel that you're enjoying.",
+        "Stay with it for a few breaths.",
+        "Write a word or two about it if you like."
+      ],
+      "grade": "A",
+      "citation": "Chen et al., 2026",
+      "taster": true
+    },
+    {
+      "id": "calm_flow_nature_sitting",
+      "title": "Green view",
+      "subtitle": "Sit somewhere green for a few minutes",
+      "duration_sec": 600,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Find a green spot or a window with a view of trees or plants.",
+        "Let your eyes rest on it without your phone.",
+        "Tap done when you're ready."
+      ],
+      "grade": "A",
+      "citation": "Meredith et al., 2020",
+      "taster": false
+    },
+    {
+      "id": "calm_flow_loving_kindness_meditation",
+      "title": "Kindness meditation",
+      "subtitle": "Send warm wishes to yourself and others",
+      "duration_sec": 90,
+      "interaction_type": "GUIDED_STEPS",
+      "steps": [
+        "Silently wish yourself: 'May I be well.'",
+        "Picture someone you care about and wish them the same.",
+        "Extend it to someone you barely know."
+      ],
+      "grade": "A",
+      "citation": "Zeng et al., 2015",
+      "taster": true
+    },
+    {
+      "id": "calm_flow_photography",
+      "title": "Three good photos",
+      "subtitle": "Photograph three things you like around you",
+      "duration_sec": 300,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Look around for things that make you smile.",
+        "Take three photos.",
+        "Look back at them later today."
+      ],
+      "grade": "B",
+      "citation": "Chen et al., 2016",
+      "taster": false
+    },
+    {
+      "id": "calm_flow_gratitude_list",
+      "title": "Three good things",
+      "subtitle": "Note what's going well",
+      "duration_sec": 90,
+      "interaction_type": "CHECKLIST",
+      "steps": [
+        "Write three things that went well or you're glad about.",
+        "For one of them, add why it happened."
+      ],
+      "grade": "B",
+      "citation": "Emmons & McCullough, 2003",
+      "taster": true
+    },
+    {
+      "id": "calm_flow_colouring_structured",
+      "title": "Colour a mandala",
+      "subtitle": "Keep the calm going with colour",
+      "duration_sec": 90,
+      "interaction_type": "DRAWING_CANVAS",
+      "steps": [
+        "Pick colours you like.",
+        "Fill in the shapes at your own pace."
+      ],
+      "grade": "B",
+      "citation": "Holt et al., 2019",
+      "taster": true
+    },
+    {
+      "id": "calm_flow_awe_walk",
+      "title": "Awe walk",
+      "subtitle": "A walk looking for things that amaze you",
+      "duration_sec": 900,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Go for a short walk somewhere new or familiar.",
+        "Look for things that feel vast or surprising: sky, trees, buildings, details.",
+        "Tap done when you're back."
+      ],
+      "grade": "A",
+      "citation": "Sturm et al., 2022",
+      "taster": false
+    },
+    {
+      "id": "calm_flow_slow_breathing",
+      "title": "Slow breathing",
+      "subtitle": "Stay in the calm",
+      "duration_sec": 90,
+      "interaction_type": "BREATH_PACER",
+      "steps": [
+        "Breathe in for 4 seconds.",
+        "Breathe out for 6 seconds.",
+        "Enjoy the stillness."
+      ],
+      "grade": "A",
+      "citation": "Toussaint et al., 2021",
+      "taster": true,
+      "pacer": {
+        "inhale_s": 4,
+        "hold_s": 0,
+        "exhale_s": 6
+      }
+    }
+  ],
+  "Radiant Joy": [
+    {
+      "id": "radiant_joy_savoring",
+      "title": "Savour this moment",
+      "subtitle": "Stay with the good feeling a bit longer",
+      "duration_sec": 90,
+      "interaction_type": "TEXT_PROMPT",
+      "steps": [
+        "Notice what you're enjoying right now.",
+        "Replay the best part in your mind.",
+        "Write a word or two about it if you like."
+      ],
+      "grade": "A",
+      "citation": "Chen et al., 2026",
+      "taster": true
+    },
+    {
+      "id": "radiant_joy_act_of_kindness",
+      "title": "Small kind act",
+      "subtitle": "Do one small thing for someone else",
+      "duration_sec": 300,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Pick one small kind thing: a compliment, a thank-you, a helping hand.",
+        "Do it today.",
+        "Tap done when you have."
+      ],
+      "grade": "A",
+      "citation": "Hui et al., 2020",
+      "taster": false
+    },
+    {
+      "id": "radiant_joy_share_good_news",
+      "title": "Share the good news",
+      "subtitle": "Tell someone what went well",
+      "duration_sec": 90,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Think of someone who'd be happy for you.",
+        "Send a message or call to tell them what went well."
+      ],
+      "grade": "B",
+      "citation": "Gable et al., 2004",
+      "taster": true
+    },
+    {
+      "id": "radiant_joy_best_possible_self_writing",
+      "title": "Best possible future",
+      "subtitle": "Write about life going really well",
+      "duration_sec": 90,
+      "interaction_type": "TEXT_PROMPT",
+      "steps": [
+        "Imagine a future where things have gone as well as they could.",
+        "Write about what it looks like.",
+        "Keep it realistic and specific."
+      ],
+      "grade": "A",
+      "citation": "Carrillo et al., 2019",
+      "taster": true
+    },
+    {
+      "id": "radiant_joy_gratitude_letter",
+      "title": "Thank-you note",
+      "subtitle": "Write to someone who helped you",
+      "duration_sec": 600,
+      "interaction_type": "TEXT_PROMPT",
+      "steps": [
+        "Think of someone you never properly thanked.",
+        "Write them a short note about what they did and why it mattered.",
+        "Send it if you'd like to."
+      ],
+      "grade": "B",
+      "citation": "Kumar & Epley, 2018",
+      "taster": false
+    },
+    {
+      "id": "radiant_joy_explore_while_positive",
+      "title": "Try something new",
+      "subtitle": "Use the good mood to explore",
+      "duration_sec": 600,
+      "interaction_type": "OFFSCREEN_CARD",
+      "steps": [
+        "Pick something small you've wanted to try: a new route, recipe or idea.",
+        "Give it a go for ten minutes."
+      ],
+      "grade": "B",
+      "citation": "Fredrickson & Branigan, 2005",
+      "taster": false
+    },
+    {
+      "id": "radiant_joy_free_dancing",
+      "title": "Dance it out",
+      "subtitle": "One upbeat song, move however you like",
+      "duration_sec": 90,
+      "interaction_type": "AUDIO_PLAYER",
+      "steps": [
+        "Pick a song you love.",
+        "Move however feels good."
+      ],
+      "grade": "C",
+      "citation": "Campion & Levita, 2014",
+      "taster": true
+    },
+    {
+      "id": "radiant_joy_everyday_creative_activity",
+      "title": "Make something",
+      "subtitle": "Draw, write or build anything for fun",
+      "duration_sec": 90,
+      "interaction_type": "DRAWING_CANVAS",
+      "steps": [
+        "Make anything you like: a doodle, a short poem, a little design.",
+        "Play, don't judge."
+      ],
+      "grade": "A",
+      "citation": "Baas et al., 2008",
+      "taster": true
+    }
+  ]
+}

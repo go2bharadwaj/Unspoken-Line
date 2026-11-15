@@ -1,4 +1,5 @@
 import { Activity, PrimaryEmotionClass } from '../types';
+import pack from './activityPack.json';
 
 export const ACTIVITIES: Activity[] = [
   // Stress
@@ -117,8 +118,11 @@ export const ACTIVITIES: Activity[] = [
   },
 ];
 
+// Keep in sync with backend/activity_pack.json (a backend test checks the files are identical).
+const PACK = pack as unknown as Record<string, Activity[]>;
+
 export const ACTIVITIES_BY_ID: Record<string, Activity> = Object.fromEntries(
-  ACTIVITIES.map((act) => [act.id, act])
+  [...ACTIVITIES, ...Object.values(PACK).flat()].map((act) => [act.id, act])
 );
 
 export const LEARN_MORE: Record<string, string> = {
@@ -134,20 +138,14 @@ export const LEARN_MORE: Record<string, string> = {
     'Expansive loops, playful open spirals, and wide spatial coverage across the sheet characterize joyful expression. Marks rise upward with generous spacing, expressing lightness and exploratory movement.',
 };
 
+// ACTIVITIES holds the original 3 per class in this order; the pack follows them.
+const CLASS_ORDER = ['Stress', 'Anxiety', 'Mental Fatigue', 'Calm Flow', 'Radiant Joy'];
+
 export function getActivitiesForClass(className: PrimaryEmotionClass): Activity[] {
-  if (!className) return ACTIVITIES.slice(0, 3);
-  switch (className) {
-    case 'Stress':
-      return ACTIVITIES.slice(0, 3);
-    case 'Anxiety':
-      return ACTIVITIES.slice(3, 6);
-    case 'Mental Fatigue':
-      return ACTIVITIES.slice(6, 9);
-    case 'Calm Flow':
-      return ACTIVITIES.slice(9, 12);
-    case 'Radiant Joy':
-      return ACTIVITIES.slice(12, 15);
-    default:
-      return ACTIVITIES.slice(0, 3);
-  }
+  const i = Math.max(0, CLASS_ORDER.indexOf(className ?? 'Stress'));
+  return [...ACTIVITIES.slice(i * 3, i * 3 + 3), ...(PACK[CLASS_ORDER[i]] ?? [])];
+}
+
+export function formatDuration(sec: number): string {
+  return sec >= 120 ? `${Math.round(sec / 60)} min` : `${sec}s`;
 }
