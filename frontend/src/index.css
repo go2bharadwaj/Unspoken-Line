@@ -37,3 +37,16 @@
 
 /* Hero collapses on scroll; anchoring would re-adjust scrollY and bounce it back */
 html { overflow-anchor: none; }
+
+/* Streamed reading: each word fades up as it appears (see StreamedParagraphs) */
+@keyframes stream-in {
+  from { opacity: 0; filter: blur(3px); transform: translateY(3px); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+.stream-word { display: inline-block; animation: stream-in 420ms ease-out both; }
+@keyframes caret-blink { 50% { opacity: 0; } }
+.stream-caret {
+  display: inline-block; width: 0.5em; height: 1em; margin-left: 2px; vertical-align: -0.12em;
+  border-radius: 2px; background: currentColor; opacity: 0.35; animation: caret-blink 1s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) { .stream-word, .stream-caret { animation: none; } }
