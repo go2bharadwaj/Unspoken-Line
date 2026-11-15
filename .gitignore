@@ -33,3 +33,7 @@ CLAUDE.md
 
 # Firebase CLI cache
 .firebase/
+
+# Eval: Quick, Draw! download cache and generated synthetic cases (regenerate with eval/generate_images.py)
+eval/.cache/
+eval/data/synthetic/
