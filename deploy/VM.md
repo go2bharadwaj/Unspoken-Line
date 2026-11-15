@@ -49,10 +49,19 @@ echo "API_HOST=34-12-56-78.sslip.io" > .env        # your IP, dashed
 cp backend/.env.example backend/.env
 nano backend/.env
 #   GEMINI_API_KEY=<your key>
+#   DATA_ENCRYPTION_KEY=<output of the command below>
 #   ALLOWED_ORIGINS=https://unspoken-line.web.app,https://unspoken-line.firebaseapp.com
 
 docker compose up -d --build
 ```
+
+`DATA_ENCRYPTION_KEY` encrypts everyone's saved history. Make it once, store a copy outside the VM (a password manager or Secret Manager), and never change it: a lost or replaced key makes all saved readings unreadable.
+
+```bash
+python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
+```
+
+`curl https://<host>/api/v1/health` should then show `"encryption_configured":true`.
 
 Check it (the first request can take ~20 s while Caddy gets the certificate):
 

@@ -19,7 +19,8 @@ import {
   markSession,
   clearHistory,
   deleteSession,
-  getShowPhoto,
+  getSettings,
+  setAge,
   setShowPhoto,
 } from "./lib/firebase";
 import { DrawingTimerRitual } from "./components/DrawingTimerRitual";
@@ -33,6 +34,7 @@ import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
 import { PrivacyBadge } from "./components/PrivacyBadge";
 import { AboutCreators } from "./components/AboutCreators";
+import { AgeGate } from "./components/AgeGate";
 import { InstallApp } from "./components/InstallApp";
 import { version } from "../package.json";
 import { CrisisSupportView } from "./components/CrisisSupportView";
@@ -93,7 +95,10 @@ export default function App() {
   // Whether the photo just read is shown above the reading, or discarded straight away
   const [showPhoto, setShowPhotoState] = useState<boolean>(true);
   // Admin accounts evaluate readings: no personalization, every reading as if from a new person
-  const [adminMode, setAdminMode] = useState<boolean>(false);
+  // null until checked, so the age question never flashes up for an admin
+  const [adminMode, setAdminMode] = useState<boolean | null>(null);
+  // The person's age: undefined while loading or if it couldn't be read, null if never given
+  const [age, setAgeState] = useState<number | null | undefined>(undefined);
 
   useEffect(() => {
     const check = async () => {
@@ -119,10 +124,15 @@ export default function App() {
     const unsub = onUserChanged((currentUser) => {
       setUser(currentUser);
       refreshSessions(currentUser);
-      getShowPhoto(currentUser)
-        .then(setShowPhotoState)
-        // Can't tell what they chose, so take the private option
+      setAgeState(undefined);
+      getSettings(currentUser)
+        .then((s) => {
+          setShowPhotoState(s.showPhoto);
+          setAgeState(s.age);
+        })
+        // Can't tell what they chose, so take the private option; readings go without an age
         .catch(() => setShowPhotoState(false));
+      setAdminMode(null);
       isAdmin(currentUser).then(setAdminMode, () => setAdminMode(false));
     });
     return () => unsub();
@@ -299,6 +309,7 @@ export default function App() {
         timer_duration_sec: timerDurationSec,
         user_baseline_scores: baseline,
         previous_summary: previousSummary,
+        age: evaluating ? null : (age ?? null),
       });
 
       if (res.safety_status === "SAFE") {
@@ -888,6 +899,17 @@ export default function App() {
             </button>
           </span>
         </div>
+      )}
+
+      {/* Asked once after sign-in; admins evaluate as an unknown person, so they skip it */}
+      {(user || !firebaseEnabled) && adminMode === false && age === null && (
+        <AgeGate
+          onSave={async (a) => {
+            await setAge(user, a);
+            setAgeState(a);
+          }}
+          onSignOut={user ? handleSignOut : undefined}
+        />
       )}
 
       <HistorySidebar
