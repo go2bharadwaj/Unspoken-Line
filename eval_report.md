@@ -11,7 +11,7 @@ python benchmark/run_all.py            # all sets, against the live API
 
 Every run writes `results.csv` (one row per case) and `report.md` into `benchmark/results/<set>_<tag>/`. Images and labels are committed, so a fresh clone runs as is. Model cases go to the live API (`https://34-58-192-9.nip.io`, Gemini `gemini-4-hydrogen`). Cases the backend decides before any model call run locally through the same code (`backend/gate.py`).
 
-## Datasets: 225 examples, 15 of them real photos
+## Datasets: 195 examples, 15 of them real photos
 
 | Set | Cases | Source | Labels |
 |---|---|---|---|
@@ -58,7 +58,7 @@ Every failure was a drawing that should have been read and was not. No unsafe ph
 
 ## Limitations
 
-- 180 of the 225 cases are generated images. They test routing well but are cleaner than real photos. The golden set is the real-world check, and it is still small (15 photos; 30+ hand-reviewed is the target).
+- 180 of the 195 cases are generated images. They test routing well but are cleaner than real photos. The golden set is the real-world check, and it is still small (15 photos; 30+ hand-reviewed is the target).
 - The golden labels were proposed during the build and are being confirmed by the team (`labeled_by` column).
 - One run per set. Gemini is not fully deterministic, so a borderline case can flip between runs.
 - Emotion labels describe drawing style, not a person's health. Unspoken Lines is not a medical device.
