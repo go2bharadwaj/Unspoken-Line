@@ -117,6 +117,8 @@ export default function App() {
   useEffect(() => {
     document.documentElement.style.scrollSnapType =
       view === "landing" ? "y mandatory" : "";
+    // Each view starts at its top; otherwise results can open mid-page at the previous view's offset
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [view]);
   // Breathing radial wash: behind the message, and peeking up at the bottom of the logo screen
   const pulse = {
