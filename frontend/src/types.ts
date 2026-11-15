@@ -73,6 +73,8 @@ export interface AnalyzeSketchRequest {
   user_baseline_scores?: EmotionScores | null;
   /** Latest progression notes (S_n-1); omitted on a first session. */
   previous_summary?: string | null;
+  /** The person's age, sent with every reading (13-120); omitted for admins and when unknown. */
+  age?: number | null;
 }
 
 export interface SummarizeReadingRequest {

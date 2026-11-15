@@ -15,6 +15,18 @@ export async function summarizeReading(req: SummarizeReadingRequest): Promise<st
   return summary;
 }
 
+/** Encrypt values for the signed-in user before saving them (the key stays on the backend; see backend/vault.py). */
+export async function sealValues(values: string[]): Promise<string[]> {
+  if (values.length === 0) return [];
+  return (await postJson<{ values: string[] }>('/api/v1/vault/seal', { values })).values;
+}
+
+/** Decrypt the signed-in user's values after loading them; null where a value can't be opened. */
+export async function openValues(values: string[]): Promise<Array<string | null>> {
+  if (values.length === 0) return [];
+  return (await postJson<{ values: Array<string | null> }>('/api/v1/vault/open', { values })).values;
+}
+
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const url = `${baseUrl}${path}`;
