@@ -20,3 +20,16 @@ python benchmark/eval_golden.py
 ```
 
 Viewers: [eval.md](eval.md) and [redteam.md](redteam.md) show each image beside its expected and actual output, with the reading text so a reviewer can judge it. Results files: `benchmark/results/golden_<set>/`.
+
+## Run it locally, several times, or with an older prompt
+
+`benchmark/eval_local.py` runs the same golden cases through the backend pipeline on your machine (no HTTP, no rate limit). It needs `GEMINI_API_KEY` in `backend/.env`.
+
+```bash
+python benchmark/eval_local.py --tag baseline --runs 1 --save-baseline    # capture one run as golden/baseline.json
+python benchmark/eval_local.py --tag current --runs 3                     # is the current prompt consistent?
+python benchmark/eval_local.py --tag old --runs 3 --prompt benchmark/prompts/v2_before_image_checks.txt
+python benchmark/eval_local.py --compare old current                      # old prompt vs new prompt
+```
+
+A case passes only if every run gives the labelled outcome. Results go to `benchmark/results/local_<tag>/` (`runs.jsonl` keeps every reading). Older prompts, taken from git history, are in `benchmark/prompts/`.
