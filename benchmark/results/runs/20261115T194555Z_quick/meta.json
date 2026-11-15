@@ -1,0 +1,32 @@
+{
+ "tag": "quick",
+ "started": "2026-11-15 19:45:55 UTC",
+ "model": "gemini-4-hydrogen",
+ "runs_per_case": 1,
+ "cases": 35,
+ "prompt": "current (backend/ai.py)",
+ "prompt_sha256": "197f0c3fa93f",
+ "temperature": 0.4,
+ "gemini_key": true,
+ "where": "local, in-process (full backend pipeline)",
+ "script": "eval_local_v2.py",
+ "script_version": "2.1",
+ "script_sha256": "426c81179e88036f260e475300549b97e69da234b03199bc101a928e0a3c889b",
+ "workers": 32,
+ "command": "python benchmark/eval_local_v2.py --quick",
+ "git_commit": "f46ce7ea0f7cb65535bb505f5d68f4d1e5798f98",
+ "uncommitted_changes": [
+  "M benchmark/eval_local_v2.py"
+ ],
+ "python": "3.14.6",
+ "google_genai": "3.3.0",
+ "case_files_sha256": {
+  "benchmark/golden/golden.csv": "0fcb3e288d3be1ecb28bf71562a339fec732e081d797cf282a74f2db0eb57df7",
+  "benchmark/safety_benchmark.csv": "612f2ad71c3678d42d92d88f512f27b20d10228be8c45a1d0799bfc62c3732c8",
+  "benchmark/redteam_v2.csv": "05e075e5dac42de7495f6bec433970f1990e0be9458dc613d880f1c7fd81fe0e"
+ },
+ "finished": "2026-11-15 19:46:26 UTC",
+ "run_at": "2026-11-15 19:45 UTC",
+ "model_calls_counted": 35,
+ "gemini_errors": 0
+}

@@ -31,7 +31,11 @@ Every run gets its own folder, benchmark/results/runs/<UTC time>_<tag>/, and not
     report.md          all metrics and every failure
     eval_report.md     ready to submit
     safety_report.md   ready to submit
+    script/            a copy of this script (its version is in meta.json) and of the backend files it ran
+    data/              a copy of the label files, the baseline it compared against, and every image used
     SHA256SUMS         checksum of every file above, so later edits are detectable
+
+benchmark/results/runs/INDEX.md gains one line per run: when, tag, script version, git commit, headline result.
 """
 
 import argparse
@@ -44,6 +48,7 @@ import json
 import logging
 import os
 import platform
+import shutil
 import statistics
 import subprocess
 import sys
@@ -55,7 +60,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "benchmark/results"
 RUNS = RESULTS / "runs"
-VERSION = "2"
+VERSION = "2.1"
+BACKEND_FILES = ["ai.py", "gate.py", "main.py", "schemas.py", "requirements.txt"]  # the pipeline under test
 GOLDEN = ROOT / "benchmark/golden"
 SYNTHETIC = [ROOT / "benchmark/safety_benchmark.csv", ROOT / "benchmark/redteam_v2.csv"]
 SCORE_KEYS = ["stress", "anxiety", "mental_fatigue", "calm_flow", "radiant_joy"]
@@ -289,7 +295,8 @@ def _evidence(out: Path) -> list[str]:
             "- `traces.jsonl`: every attempt, including retries and errors, with the text sent to the model, the model's own output before triage, and the full API response.",
             "- `inputs.csv`: every case, its label, and the SHA-256 of its image. `prompt.txt`: the exact system prompt.",
             "- `per_run.csv` and `results.csv`: one row per case per run, and one row per case.",
-            "- `meta.json`: time, git commit, package versions and the command used. `SHA256SUMS`: a checksum of every file, so later edits are detectable.", ""]
+            "- `script/`: the eval script that produced this run and the backend files it exercised. `data/`: the label files and every image used.",
+            "- `meta.json`: time, script version, git commit, package versions and the command used. `SHA256SUMS`: a checksum of every file, so later edits are detectable.", ""]
 
 
 def _before_after(rows: list[dict], before, keep) -> list[str]:
@@ -418,6 +425,17 @@ async def run_eval(a: argparse.Namespace) -> int:
     out.mkdir(parents=True)
     TRACE = open(out / "traces.jsonl", "a", encoding="utf-8")
     (out / "prompt.txt").write_text(prompt, encoding="utf-8")
+    (out / "script/backend").mkdir(parents=True)
+    (out / "data/images").mkdir(parents=True)
+    shutil.copy2(__file__, out / "script")
+    for name in BACKEND_FILES:
+        shutil.copy2(ROOT / "backend" / name, out / "script/backend")
+    for f in [GOLDEN / "golden.csv", *SYNTHETIC, GOLDEN / "baseline.json"]:
+        if f.exists():
+            shutil.copy2(f, out / "data")
+    for c in cases:
+        if c["image_path"]:
+            shutil.copy2(ROOT / c["image_path"], out / "data/images")
     with open(out / "inputs.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=[*cases[0], "image_sha256"])
         w.writeheader()
@@ -425,7 +443,8 @@ async def run_eval(a: argparse.Namespace) -> int:
     git = lambda *args: subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True).stdout.strip()  # noqa: E731
     meta = {"tag": a.tag, "started": f"{started:%Y-%m-%d %H:%M:%S UTC}", "model": model, "runs_per_case": a.runs, "cases": len(cases),
             "prompt": a.prompt or "current (backend/ai.py)", "prompt_sha256": sha256(prompt.encode())[:12],
-            "temperature": 0.4, "gemini_key": has_key, "where": "local, in-process (full backend pipeline)", "script_version": VERSION, "workers": a.workers,
+            "temperature": 0.4, "gemini_key": has_key, "where": "local, in-process (full backend pipeline)", "script": Path(__file__).name, "script_version": VERSION,
+            "script_sha256": sha256(Path(__file__).read_bytes()), "workers": a.workers,
             "command": "python " + " ".join(sys.argv), "git_commit": git("rev-parse", "HEAD"),
             "uncommitted_changes": [line for line in git("status", "--porcelain", "--untracked-files=no").splitlines()],
             "python": platform.python_version(), "google_genai": metadata.version("google-genai"),
@@ -495,8 +514,16 @@ async def run_eval(a: argparse.Namespace) -> int:
     before = load_run(a.before) if a.before else None
     (out / "eval_report.md").write_text(eval_report(rows, meta, before, out), encoding="utf-8")
     (out / "safety_report.md").write_text(safety_report(rows, meta, before, out), encoding="utf-8")
-    files = sorted(f for f in out.iterdir() if f.name != "SHA256SUMS")
-    (out / "SHA256SUMS").write_text("".join(f"{sha256(f.read_bytes())}  {f.name}\n" for f in files), encoding="utf-8")
+    files = sorted(f for f in out.rglob("*") if f.is_file() and f.name != "SHA256SUMS")
+    (out / "SHA256SUMS").write_text("".join(f"{sha256(f.read_bytes())}  {f.relative_to(out).as_posix()}\n" for f in files), encoding="utf-8")
+    index = RUNS / "INDEX.md"
+    if not index.exists():
+        index.write_text("# Eval runs\n\nOne line per run, oldest first. Each folder holds the script, data, raw traces and reports for that run.\n\n"
+                         "| Run folder | Started (UTC) | Tag | Script | Git commit | Prompt | Cases x runs | Every run gives the labelled outcome |\n|---|---|---|---|---|---|---|---|\n", encoding="utf-8")
+    with open(index, "a", encoding="utf-8") as f:
+        f.write(f"| [`{out.name}`]({out.name}/) | {meta['started']} | {a.tag} | {meta['script']} v{VERSION} | `{meta['git_commit'][:8]}`"
+                f"{' + uncommitted changes' if meta['uncommitted_changes'] else ''} | `{meta['prompt']}` (sha {meta['prompt_sha256']}) | "
+                f"{len(cases)} x {a.runs} | {dict(metrics(rows))['**Every run gives the labelled outcome**']} |\n")
     print("\n" + "\n".join(report) + f"\n\nWrote {out.relative_to(ROOT)}/  (eval_report.md and safety_report.md are ready to submit)")
     return 1 if fails else 0
 
