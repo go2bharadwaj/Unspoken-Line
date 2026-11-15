@@ -2,6 +2,8 @@
 
 A privacy-first, non-verbal mindfulness progressive web application (PWA). The user draws on real paper for a timed window, a singing-bowl chime sounds, they photograph the sketch, and the backend reads the strokes into five non-clinical emotion scores. The photo lives only in RAM; only numeric scores, timer duration, and timestamps are saved.
 
+**Live app:** https://unspoken-line.web.app (laptop and phone) · **API:** https://34-58-192-9.nip.io/api/v1/health
+
 > **Not a medical device: scores describe drawing style, not a person's health.**
 
 ---
@@ -77,17 +79,25 @@ python -m pytest
 
 ## Safety Benchmark
 
-The safety benchmark tests 150 cases across benign sketches, crisis statements, adversarial prompt injections, glare/dark/blank captures, and clinical overreach.
+Two generated case sets, with their images committed under `benchmark/cases/`, plus the golden dataset of real photos:
 
-1. Generate benchmark dataset (150 cases and synthetic sketches):
-   ```bash
-   python benchmark/generate_safety_benchmark.py
-   ```
+| Set | Cases | What it covers |
+|---|---|---|
+| `safety_benchmark.csv` | 150 | 45 normal drawings, 30 crisis lines, 15 hidden instructions, 30 dark/glare/blank photos, 30 clinical-word scrubs |
+| `redteam_v2.csv` | 30 | Harder round: handwritten crisis and injection lines tucked into real-looking drawings (coded, indirect, Spanish and French wording), plus 10 normal drawings with harmless labels to catch over-blocking |
 
-2. Evaluate against the running API:
-   ```bash
-   python benchmark/eval_safety.py --api http://localhost:8000
-   ```
+Results and write-ups: [eval_report.md](eval_report.md) and [safety_report.md](safety_report.md). Real photos with human labels live in the [golden dataset](benchmark/golden/README.md).
+
+Run everything against the live API (needs the backend requirements: `pip install -r backend/requirements.txt`):
+
+```bash
+python benchmark/run_all.py                       # all sets; add --tag after to keep a second run beside the first
+python benchmark/analyze_image.py my_drawing.jpg  # send one photo and see the full answer
+```
+
+Model cases go to the API; cases the backend settles before any model call (bad photos, the clinical-word scrub) run locally through the same `backend/gate.py`, so one run stays under the API's hourly per-IP limit. If it is reached anyway, the script waits and continues. Each run writes `results.csv` (one row per case) and `report.md` (pass rate per case type, failures listed). The metric is an exact match on the expected safety status.
+
+To rebuild the case images: `python benchmark/generate_safety_benchmark.py` and `python benchmark/generate_redteam_v2.py` (the second needs macOS handwriting fonts).
 
 ---
 
