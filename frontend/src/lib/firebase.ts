@@ -20,11 +20,12 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
+  deleteDoc,
   Firestore,
   DocumentData,
   Timestamp,
 } from 'firebase/firestore';
-import { EmotionScores, StoredSession, TimerDurationSec } from '../types';
+import { EmotionScores, SavedReading, StoredSession, TimerDurationSec } from '../types';
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
 const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
@@ -111,8 +112,12 @@ export function onUserChanged(cb: (user: User | null) => void): () => void {
 
 export async function saveSession(
   user: User | null,
-  data: { timer_duration_sec: TimerDurationSec; scores: EmotionScores }
+  data: { timer_duration_sec: TimerDurationSec; scores: EmotionScores; reading?: SavedReading }
 ): Promise<string> {
+  // Firestore rejects undefined values, so only send the reading fields that exist
+  const reading = Object.fromEntries(
+    Object.entries(data.reading ?? {}).filter(([, v]) => v !== undefined && v !== null)
+  ) as SavedReading;
   const sanitizedScores: EmotionScores = {
     stress: Number(data.scores.stress.toFixed(2)),
     anxiety: Number(data.scores.anxiety.toFixed(2)),
@@ -127,6 +132,7 @@ export async function saveSession(
       created_at: serverTimestamp(),
       timer_duration_sec: data.timer_duration_sec,
       scores: sanitizedScores,
+      ...reading,
     });
     return docRef.id;
   }
@@ -138,6 +144,7 @@ export async function saveSession(
     created_at: Date.now(),
     timer_duration_sec: data.timer_duration_sec,
     scores: sanitizedScores,
+    ...reading,
   };
   const list = getLocalSessions();
   list.push(newSession);
@@ -178,6 +185,12 @@ export async function listSessions(
           calm_anchor: raw.calm_anchor,
           aura_hex: raw.aura_hex,
           summary: typeof raw.summary === 'string' ? raw.summary : undefined,
+          reading_text: raw.reading_text,
+          progression_text: raw.progression_text,
+          trend_text: raw.trend_text,
+          evidence: raw.evidence,
+          primary_class: raw.primary_class,
+          source: raw.source,
         };
         results.push(session);
       });
@@ -237,6 +250,14 @@ export async function markSession(
     }
     saveLocalSessions(local);
   }
+}
+
+export async function deleteSession(user: User | null, id: string): Promise<void> {
+  if (user && db) {
+    await deleteDoc(doc(db, 'users', user.uid, 'sessions', id));
+    return;
+  }
+  saveLocalSessions(getLocalSessions().filter((s) => s.id !== id));
 }
 
 export async function clearHistory(user: User | null): Promise<void> {

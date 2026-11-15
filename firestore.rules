@@ -5,7 +5,8 @@ service cloud.firestore {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
 
       allow create: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['created_at', 'timer_duration_sec', 'scores', 'calm_anchor', 'aura_hex'])
+        && request.resource.data.keys().hasOnly(['created_at', 'timer_duration_sec', 'scores', 'calm_anchor', 'aura_hex',
+             'reading_text', 'progression_text', 'trend_text', 'evidence', 'primary_class', 'source'])
         && request.resource.data.keys().hasAll(['created_at', 'timer_duration_sec', 'scores'])
         && request.resource.data.timer_duration_sec in [5, 10, 15, 30, 60]
         && request.resource.data.created_at == request.time
@@ -18,7 +19,14 @@ service cloud.firestore {
         && request.resource.data.scores.calm_flow is number && request.resource.data.scores.calm_flow >= 0 && request.resource.data.scores.calm_flow <= 1
         && request.resource.data.scores.radiant_joy is number && request.resource.data.scores.radiant_joy >= 0 && request.resource.data.scores.radiant_joy <= 1
         && (!('calm_anchor' in request.resource.data) || request.resource.data.calm_anchor is bool)
-        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')));
+        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')))
+        // The reading as shown, so it can be reopened from history (photos are never stored)
+        && (!('reading_text' in request.resource.data) || (request.resource.data.reading_text is string && request.resource.data.reading_text.size() <= 20000))
+        && (!('progression_text' in request.resource.data) || (request.resource.data.progression_text is string && request.resource.data.progression_text.size() <= 20000))
+        && (!('trend_text' in request.resource.data) || (request.resource.data.trend_text is string && request.resource.data.trend_text.size() <= 2000))
+        && (!('evidence' in request.resource.data) || (request.resource.data.evidence is list && request.resource.data.evidence.size() <= 10))
+        && (!('primary_class' in request.resource.data) || request.resource.data.primary_class in ['Stress', 'Anxiety', 'Mental Fatigue', 'Calm Flow', 'Radiant Joy'])
+        && (!('source' in request.resource.data) || request.resource.data.source in ['gemini', 'fallback']);
 
       allow update: if request.auth != null && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['calm_anchor', 'aura_hex', 'summary'])

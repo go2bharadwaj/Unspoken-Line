@@ -12,6 +12,8 @@ interface Props {
   result: AnalyzeSketchResponse;
   onOpenActivity: (activity: Activity) => void;
   onDone: () => void;
+  /** Rendered at the top left, e.g. the "Past readings" toggle */
+  historyToggle?: React.ReactNode;
 }
 
 const SCORE_CONFIGS: Array<{
@@ -41,6 +43,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
   result,
   onOpenActivity,
   onDone,
+  historyToggle,
 }) => {
   const [learnMoreOpen, setLearnMoreOpen] = useState(false);
 
@@ -61,12 +64,15 @@ export const AnalysisResultsView: React.FC<Props> = ({
   const learnMoreDescription =
     LEARN_MORE[primaryClass] || LEARN_MORE['Calm Flow'];
 
-  // Jev is off, so Gemini is the only model; when it fails, scores come from stroke measurements
-  const geminiAnswered = result.analysis_sources?.flash === 'gemini';
+  // Jev is off, so Gemini is the only model; when it fails, scores come from stroke measurements.
+  // Unknown for readings saved before history kept the source.
+  const source = result.analysis_sources?.flash;
+  const geminiAnswered = source === 'gemini';
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 flex flex-col gap-6 text-left">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        {historyToggle ?? <span />}
         <button
           type="button"
           onClick={onDone}
@@ -75,6 +81,12 @@ export const AnalysisResultsView: React.FC<Props> = ({
           Return to Sanctuary
         </button>
       </div>
+
+      {!result.visual_reflection_text && (
+        <p className="rounded-2xl border border-dashed border-borderHairline px-5 py-4 text-sm text-warmUmber">
+          This session was saved before readings were kept, so only its scores are here.
+        </p>
+      )}
 
       {/* Gemini's free-form reading of the drawing */}
       {result.visual_reflection_text && (
@@ -227,7 +239,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
                     <tr className="border-b border-borderHairline text-warmUmber">
                       <th className="py-2 pr-4 font-normal">Metric</th>
                       <th className="py-2 pl-4 font-normal text-right">
-                        {geminiAnswered ? 'Gemini' : 'Stroke analysis'}
+                        {geminiAnswered ? 'Gemini' : source ? 'Stroke analysis' : 'Score'}
                       </th>
                     </tr>
                   </thead>
@@ -244,16 +256,18 @@ export const AnalysisResultsView: React.FC<Props> = ({
                 </table>
               </div>
 
-              <div className="pt-2 text-xs text-warmUmber border-t border-borderHairline/60">
-                {geminiAnswered ? (
-                  <p>Scored by Gemini from the photo of your sketch.</p>
-                ) : (
-                  <p>
-                    Gemini was unavailable for this sketch, so the reading and scores come from
-                    stroke measurements instead.
-                  </p>
-                )}
-              </div>
+              {source && (
+                <div className="pt-2 text-xs text-warmUmber border-t border-borderHairline/60">
+                  {geminiAnswered ? (
+                    <p>Scored by Gemini from the photo of your sketch.</p>
+                  ) : (
+                    <p>
+                      Gemini was unavailable for this sketch, so the reading and scores come from
+                      stroke measurements instead.
+                    </p>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

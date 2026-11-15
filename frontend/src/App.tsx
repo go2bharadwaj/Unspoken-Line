@@ -18,10 +18,13 @@ import {
   listSessions,
   markSession,
   clearHistory,
+  deleteSession,
 } from "./lib/firebase";
 import { DrawingTimerRitual } from "./components/DrawingTimerRitual";
 import { PhotoCaptureCard } from "./components/PhotoCaptureCard";
 import { AnalysisResultsView } from "./components/AnalysisResultsView";
+import { HistorySidebar, HISTORY_PANEL_ID } from "./components/HistorySidebar";
+import { sessionToResult } from "./lib/history";
 import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
 import { PrivacyBadge } from "./components/PrivacyBadge";
@@ -72,6 +75,7 @@ export default function App() {
   const [crisisMessage, setCrisisMessage] = useState<string | null>(null);
   const [activeActivity, setActiveActivity] = useState<Activity | null>(null);
   const [confirmingClear, setConfirmingClear] = useState<boolean>(false);
+  const [historyOpen, setHistoryOpen] = useState<boolean>(false);
 
   const [, startTransition] = useTransition();
   const shouldReduceMotion = useReducedMotion();
@@ -212,6 +216,22 @@ export default function App() {
             savedId = await saveSession(user, {
               timer_duration_sec: timerDurationSec,
               scores: res.merged_scores,
+              // Kept so the reading can be reopened from history; sliced to the firestore.rules caps
+              // so an unusually long reading can't make the whole session fail to save
+              reading: {
+                reading_text: res.visual_reflection_text?.slice(0, 20000),
+                progression_text: res.progression_reflection_text?.slice(
+                  0,
+                  20000,
+                ),
+                trend_text: res.trend_summary_text?.slice(0, 2000),
+                evidence: res.stroke_evidence_bullets.slice(0, 10),
+                primary_class: res.primary_emotion_class ?? undefined,
+                source:
+                  res.analysis_sources?.flash === "gemini"
+                    ? "gemini"
+                    : "fallback",
+              },
             });
             saved = true;
             await refreshSessions(user);
@@ -286,6 +306,34 @@ export default function App() {
       await refreshSessions(user);
     } catch {
       // Ignore mark error
+    }
+  };
+
+  const showPastReading = (session: StoredSession) => {
+    setAnalysisResult(sessionToResult(session));
+    setCurrentSessionId(session.id);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+
+  const handleSelectPast = (session: StoredSession) => {
+    showPastReading(session);
+    // Below xl the panel covers the results, so get out of the way
+    if (!window.matchMedia("(min-width: 1280px)").matches)
+      setHistoryOpen(false);
+  };
+
+  const handleDeletePast = async (id: string) => {
+    await deleteSession(user, id);
+    const remaining = sessions.filter((s) => s.id !== id);
+    await refreshSessions(user);
+    if (id !== currentSessionId) return;
+    // The open reading was deleted: show the newest one left, or go home if none
+    const newest = remaining[remaining.length - 1];
+    if (newest) {
+      showPastReading(newest);
+    } else {
+      setHistoryOpen(false);
+      handleDoneResults();
     }
   };
 
@@ -607,6 +655,28 @@ export default function App() {
                 result={analysisResult}
                 onOpenActivity={handleOpenActivity}
                 onDone={handleDoneResults}
+                historyToggle={
+                  <button
+                    type="button"
+                    onClick={() => setHistoryOpen((o) => !o)}
+                    aria-expanded={historyOpen}
+                    aria-controls={HISTORY_PANEL_ID}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-borderHairline text-xs text-warmUmber hover:text-espressoInk hover:bg-turmericMist/30 transition-colors cursor-pointer"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="w-3.5 h-3.5 stroke-current fill-none stroke-2"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Past readings
+                  </button>
+                }
               />
             </motion.div>
           )}
@@ -653,6 +723,15 @@ export default function App() {
           onMark={handleMarkSession}
         />
       )}
+
+      <HistorySidebar
+        open={historyOpen && view === "results"}
+        sessions={sessions}
+        selectedId={currentSessionId}
+        onClose={() => setHistoryOpen(false)}
+        onSelect={handleSelectPast}
+        onDelete={handleDeletePast}
+      />
 
       {/* Footer (snap-end makes the page bottom a resting point under mandatory snap) */}
       <footer className="snap-end w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-warmUmber/60 border-t border-borderHairline/40">
