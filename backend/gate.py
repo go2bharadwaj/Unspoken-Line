@@ -430,7 +430,7 @@ BLOCKED_MESSAGES: dict[str, str] = {
     "ADVERSARIAL_INJECTION": "We couldn't analyze this drawing—please photograph only your paper or whiteboard sketch.",
     "NSFW_BLOCKED": "This content cannot be processed—please photograph only pen-and-paper sketch lines.",
     "NON_SKETCH_REJECTED": "This looks like something other than a sketch—try photographing your paper drawing.",
-    "TEXT_MESSAGE_REJECTED": "This looks like writing. Unspoken Line reads drawings only and doesn't follow or reply to written words—please photograph a drawing.",
+    "TEXT_MESSAGE_REJECTED": "This looks like writing. Unspoken Lines reads drawings only and doesn't follow or reply to written words—please photograph a drawing.",
 }
 
 

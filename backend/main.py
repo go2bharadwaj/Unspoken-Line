@@ -99,7 +99,7 @@ root_logger.handlers = [handler]
 logger = logging.getLogger("unspoken_line.main")
 
 app = FastAPI(
-    title="Unspoken Line API",
+    title="Unspoken Lines API",
     version="1.0.0",
     docs_url="/docs",
     redoc_url=None,

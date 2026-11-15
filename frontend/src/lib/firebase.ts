@@ -27,7 +27,7 @@ import {
   DocumentData,
   Timestamp,
 } from 'firebase/firestore';
-import { EmotionScores, SavedReading, StoredSession, TimerDurationSec } from '../types';
+import { EmotionScores, RATING_CHOICES, SavedReading, StoredSession, TimerDurationSec } from '../types';
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
 const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
@@ -187,6 +187,7 @@ export async function listSessions(
           calm_anchor: raw.calm_anchor,
           aura_hex: raw.aura_hex,
           summary: typeof raw.summary === 'string' ? raw.summary : undefined,
+          rating: typeof raw.rating === 'number' ? raw.rating : undefined,
           reading_text: raw.reading_text,
           progression_text: raw.progression_text,
           trend_text: raw.trend_text,
@@ -213,9 +214,9 @@ export async function listSessions(
 export async function markSession(
   user: User | null,
   id: string,
-  patch: { calm_anchor?: boolean; aura_hex?: string; summary?: string }
+  patch: { calm_anchor?: boolean; aura_hex?: string; summary?: string; rating?: number }
 ): Promise<void> {
-  const updatePayload: { calm_anchor?: boolean; aura_hex?: string; summary?: string } = {};
+  const updatePayload: { calm_anchor?: boolean; aura_hex?: string; summary?: string; rating?: number } = {};
   if (typeof patch.calm_anchor === 'boolean') {
     updatePayload.calm_anchor = patch.calm_anchor;
   }
@@ -225,6 +226,9 @@ export async function markSession(
   // Same cap as the backend's SUMMARY_MAX_CHARS and firestore.rules
   if (typeof patch.summary === 'string' && patch.summary.length > 0 && patch.summary.length <= 1500) {
     updatePayload.summary = patch.summary;
+  }
+  if (patch.rating !== undefined && RATING_CHOICES.includes(patch.rating)) {
+    updatePayload.rating = patch.rating;
   }
 
   if (Object.keys(updatePayload).length === 0) {
@@ -249,6 +253,9 @@ export async function markSession(
     }
     if (updatePayload.summary !== undefined) {
       target.summary = updatePayload.summary;
+    }
+    if (updatePayload.rating !== undefined) {
+      target.rating = updatePayload.rating;
     }
     saveLocalSessions(local);
   }

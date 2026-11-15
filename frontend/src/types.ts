@@ -108,6 +108,8 @@ export interface StoredSession {
   aura_hex?: string;
   /** Progression notes written after this session (S_n), sent with the next one. */
   summary?: string;
+  /** How accurate the person found the reading, 1-10 with no 7 (RATING_CHOICES). */
+  rating?: number;
   /** The reading as shown, so it can be reopened from history. Absent on sessions saved before history existed. */
   reading_text?: string;
   progression_text?: string;
@@ -122,3 +124,6 @@ export type SavedReading = Pick<
   StoredSession,
   'reading_text' | 'progression_text' | 'trend_text' | 'evidence' | 'primary_class' | 'source'
 >;
+
+/** Accuracy scale for a reading. No 7: it is the easy non-answer, so people pick a side. */
+export const RATING_CHOICES: readonly number[] = [1, 2, 3, 4, 5, 6, 8, 9, 10];

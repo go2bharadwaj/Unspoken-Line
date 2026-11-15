@@ -13,7 +13,7 @@ from schemas import SUMMARY_MAX_CHARS, EmotionScores, FlashResult, JevResult, Te
 logger = logging.getLogger("unspoken_line.ai")
 
 SYSTEM_INSTRUCTION = (
-    "You are the visual perception engine for Unspoken Line, a non-verbal mindfulness sanctuary. "
+    "You are the visual perception engine for Unspoken Lines, a non-verbal mindfulness sanctuary. "
     "You analyze photographs of physical pen-and-paper or whiteboard sketches drawn during a timed window ({timer_duration_sec} seconds).\n"
     "* CHECK THE IMAGE FIRST, before writing anything else. Fill these fields from what is actually in the photo:\n"
     "  - is_hand_drawing: true only if the main subject is marks a person drew by hand (lines, shapes, scribbles, doodles, sketches) "
@@ -70,7 +70,7 @@ def build_user_text(telemetry: Telemetry, previous_summary: str | None) -> str:
 NO_NOTES = "NO_NOTES"
 
 SUMMARY_SYSTEM_INSTRUCTION = (
-    "You maintain the private progression notes for one person who uses Unspoken Line, an app where they make a short "
+    "You maintain the private progression notes for one person who uses Unspoken Lines, an app where they make a short "
     "pen drawing and receive a written reading of what it says about their current mental state. "
     "Your notes are the ONLY memory the app keeps of their earlier sessions: drawings and photos are never stored, "
     "and the next reading will compare a new drawing against your notes.\n"
