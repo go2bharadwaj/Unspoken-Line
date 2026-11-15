@@ -40,6 +40,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // The app's "is there a newer deploy?" check must see the network, never this cache
+  if (event.request.cache === 'no-store') {
+    return;
+  }
+
   // Network-first for navigations falling back to cached /index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(

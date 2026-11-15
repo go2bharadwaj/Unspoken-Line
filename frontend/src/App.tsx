@@ -25,6 +25,7 @@ import { PhotoCaptureCard } from "./components/PhotoCaptureCard";
 import { AnalysisResultsView } from "./components/AnalysisResultsView";
 import { HistorySidebar, HISTORY_PANEL_ID } from "./components/HistorySidebar";
 import { sessionToResult } from "./lib/history";
+import { newerVersionDeployed, reloadOnceFor } from "./lib/freshness";
 import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
 import { PrivacyBadge } from "./components/PrivacyBadge";
@@ -76,6 +77,26 @@ export default function App() {
   const [activeActivity, setActiveActivity] = useState<Activity | null>(null);
   const [confirmingClear, setConfirmingClear] = useState<boolean>(false);
   const [historyOpen, setHistoryOpen] = useState<boolean>(false);
+  // Fresh readings stream in; ones reopened from history show at once
+  const [resultIsFresh, setResultIsFresh] = useState<boolean>(false);
+  // A newer deploy than the one this tab is running (path of its bundle), found when the tab returns
+  const [newVersion, setNewVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    const check = async () => {
+      if (document.visibilityState !== "visible") return;
+      const live = await newerVersionDeployed();
+      if (live) setNewVersion(live);
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", check); // back/forward cache restores skip a reload
+    window.addEventListener("focus", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("pageshow", check);
+      window.removeEventListener("focus", check);
+    };
+  }, []);
 
   const [, startTransition] = useTransition();
   const shouldReduceMotion = useReducedMotion();
@@ -114,7 +135,18 @@ export default function App() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // On the home page nothing is in progress, so take the new version straight away;
+  // mid-session we offer it instead of yanking the page
+  const [newVersionDeclined, setNewVersionDeclined] = useState<boolean>(false);
+  useEffect(() => {
+    if (newVersion && view === "landing") reloadOnceFor(newVersion);
+  }, [newVersion, view]);
+
   const logoInHero = view === "landing" && !scrolled;
+  // History lives with the account; without Firebase (local dev) everyone is a guest with local history
+  const historyAvailable =
+    (Boolean(user) || !firebaseEnabled) &&
+    (view === "landing" || view === "results");
 
   // Snap only on the three-screen landing: elsewhere the footer would be the sole snap point
   // and mandatory snapping pins the page to the bottom (e.g. the results view on phones)
@@ -258,6 +290,7 @@ export default function App() {
         }
         setCurrentSessionId(savedId);
         setAnalysisResult(res);
+        setResultIsFresh(true);
         startTransition(() => {
           setView("results");
         });
@@ -311,7 +344,9 @@ export default function App() {
 
   const showPastReading = (session: StoredSession) => {
     setAnalysisResult(sessionToResult(session));
+    setResultIsFresh(false);
     setCurrentSessionId(session.id);
+    setView("results");
     window.scrollTo({ top: 0, behavior: "instant" });
   };
 
@@ -362,8 +397,7 @@ export default function App() {
             type="button"
             onClick={() => {
               if (view !== "analyzing") {
-                setAnalysisResult(null);
-                setView("landing");
+                handleDoneResults();
                 window.scrollTo({ top: 0 });
               }
             }}
@@ -381,7 +415,30 @@ export default function App() {
             )}
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {historyAvailable && (
+              <button
+                type="button"
+                onClick={() => setHistoryOpen((o) => !o)}
+                aria-expanded={historyOpen}
+                aria-controls={HISTORY_PANEL_ID}
+                aria-label="Past readings"
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-full border border-borderHairline text-xs text-warmUmber hover:text-espressoInk hover:bg-turmericMist/30 transition-colors cursor-pointer"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-3.5 h-3.5 stroke-current fill-none stroke-2"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Past readings</span>
+              </button>
+            )}
             {firebaseEnabled ? (
               user ? (
                 <div className="flex items-center gap-3">
@@ -652,31 +709,11 @@ export default function App() {
               className="w-full"
             >
               <AnalysisResultsView
+                key={currentSessionId}
                 result={analysisResult}
                 onOpenActivity={handleOpenActivity}
                 onDone={handleDoneResults}
-                historyToggle={
-                  <button
-                    type="button"
-                    onClick={() => setHistoryOpen((o) => !o)}
-                    aria-expanded={historyOpen}
-                    aria-controls={HISTORY_PANEL_ID}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-borderHairline text-xs text-warmUmber hover:text-espressoInk hover:bg-turmericMist/30 transition-colors cursor-pointer"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="w-3.5 h-3.5 stroke-current fill-none stroke-2"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Past readings
-                  </button>
-                }
+                streamText={resultIsFresh}
               />
             </motion.div>
           )}
@@ -724,8 +761,34 @@ export default function App() {
         />
       )}
 
+      {newVersion && view !== "landing" && !newVersionDeclined && (
+        <div
+          role="status"
+          className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 flex items-center justify-between gap-3 rounded-full border border-borderHairline bg-canvasPaper shadow-sm pl-5 pr-2 py-2 text-sm text-espressoInk"
+        >
+          <span>A new version of Unspoken Line is ready.</span>
+          <span className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-3.5 py-1.5 rounded-full bg-peachTerracotta text-canvasPaper text-xs font-medium hover:bg-peachTerracotta/90 cursor-pointer"
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewVersionDeclined(true)}
+              aria-label="Dismiss"
+              className="w-8 h-8 rounded-full text-warmUmber hover:text-espressoInk cursor-pointer"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      )}
+
       <HistorySidebar
-        open={historyOpen && view === "results"}
+        open={historyOpen && historyAvailable}
         sessions={sessions}
         selectedId={currentSessionId}
         onClose={() => setHistoryOpen(false)}
