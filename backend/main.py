@@ -49,7 +49,7 @@ FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
 
 
 def _verify_uid(token: str) -> str | None:
-    # ponytail: fetches Google's certs per call (~tens of ms); cache them if analyze volume grows.
+    # shortcut: fetches Google's certs per call (~tens of ms); cache them if analyze volume grows.
     try:
         claims = id_token.verify_firebase_token(
             token, google_requests.Request(), audience=FIREBASE_PROJECT_ID
