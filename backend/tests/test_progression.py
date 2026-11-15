@@ -44,6 +44,8 @@ class Resp:
 
 def _flash(progression):
     return FlashResult(
+        is_hand_drawing=True,
+        text_meaning="NONE",
         visual_reflection_text="This drawing on its own.",
         progression_reflection_text=progression,
         stroke_evidence_bullets=["a", "b", "c"],

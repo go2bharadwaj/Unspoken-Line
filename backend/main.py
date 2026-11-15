@@ -215,15 +215,36 @@ async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> Analyze
             analysis_sources=sources,
         )
 
-    # Rule B: Prompt injection, explicit content, or non-sketch rejections
-    flash_blocked = flash_res.safety_flag in (
-        "ADVERSARIAL_INJECTION",
-        "NSFW_BLOCKED",
-        "NON_SKETCH_REJECTED",
-    )
-    jev_blocked = jev_res.filter_flag == "NON_SKETCH_REJECTED"
-    if flash_blocked or jev_blocked:
-        blocked_flag = flash_res.safety_flag if flash_blocked else "NON_SKETCH_REJECTED"
+    # Fail closed, after the crisis rule: with a key configured, a failed Gemini call means nothing checked this image
+    # (crisis, explicit, written instructions), so no reading. Without a key (local dev) the stroke fallback stands.
+    if flash_src == "fallback" and os.getenv("GEMINI_API_KEY", "").strip():
+        logger.info(
+            "image_check_unavailable",
+            extra={
+                "event": "analyze_outcome",
+                "safety_status": "RETRY_CAPTURE",
+                "sources": {"flash": flash_src, "jev": jev_src},
+            },
+        )
+        del img, gray, jpeg, jpeg_b64
+        return AnalyzeSketchResponse(
+            safety_status="RETRY_CAPTURE",
+            retry_or_safety_message="We couldn't read your drawing just now. Please try again in a moment.",
+            telemetry=telemetry,
+            analysis_sources=sources,
+        )
+
+    # Rule B: hard stop for prompt injection, explicit content, non-drawings, and written messages.
+    # Each signal blocks on its own, so a model that flags SAFE but says "not a drawing" is still stopped.
+    if flash_res.safety_flag != "SAFE":
+        blocked_flag = flash_res.safety_flag
+    elif not flash_res.is_hand_drawing or jev_res.filter_flag == "NON_SKETCH_REJECTED":
+        blocked_flag = "NON_SKETCH_REJECTED"
+    elif flash_res.text_meaning == "MESSAGE":
+        blocked_flag = "TEXT_MESSAGE_REJECTED"
+    else:
+        blocked_flag = None
+    if blocked_flag:
         msg = get_blocked_message(blocked_flag)
         logger.info(
             "content_blocked",

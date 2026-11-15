@@ -1,4 +1,4 @@
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { User } from "firebase/auth";
 import {
@@ -19,6 +19,8 @@ import {
   markSession,
   clearHistory,
   deleteSession,
+  getRememberProgression,
+  setRememberProgression,
 } from "./lib/firebase";
 import { DrawingTimerRitual } from "./components/DrawingTimerRitual";
 import { PhotoCaptureCard } from "./components/PhotoCaptureCard";
@@ -81,6 +83,14 @@ export default function App() {
   const [resultIsFresh, setResultIsFresh] = useState<boolean>(false);
   // A newer deploy than the one this tab is running (path of its bundle), found when the tab returns
   const [newVersion, setNewVersion] = useState<string | null>(null);
+  // The photo behind the reading just made; memory only, so past readings have none
+  const [sketchPhoto, setSketchPhoto] = useState<{
+    sessionId: string;
+    url: string;
+  } | null>(null);
+  // Progression notes (S_n): written after each reading and sent with the next, unless turned off
+  const [rememberProgression, setRememberProgressionState] =
+    useState<boolean>(true);
 
   useEffect(() => {
     const check = async () => {
@@ -106,6 +116,10 @@ export default function App() {
     const unsub = onUserChanged((currentUser) => {
       setUser(currentUser);
       refreshSessions(currentUser);
+      getRememberProgression(currentUser)
+        .then(setRememberProgressionState)
+        // Can't tell what they chose, so don't send or write notes this time
+        .catch(() => setRememberProgressionState(false));
     });
     return () => unsub();
   }, []);
@@ -148,14 +162,17 @@ export default function App() {
     (Boolean(user) || !firebaseEnabled) &&
     (view === "landing" || view === "results");
 
-  // Snap only on the three-screen landing: elsewhere the footer would be the sole snap point
-  // and mandatory snapping pins the page to the bottom (e.g. the results view on phones)
+  // Each view starts at its top; otherwise results can open mid-page at the previous view's offset
   useEffect(() => {
-    document.documentElement.style.scrollSnapType =
-      view === "landing" ? "y mandatory" : "";
-    // Each view starts at its top; otherwise results can open mid-page at the previous view's offset
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [view]);
+  // Snap only while the three-screen landing is on the page: elsewhere the footer is the sole snap
+  // point and mandatory snapping pins the page to the bottom. Turned on when the landing mounts,
+  // not when the view changes: during the previous view's fade-out the footer is the only target,
+  // and Chrome would keep snapping to it as the landing grows the page.
+  const landingRef = useCallback((el: HTMLDivElement | null) => {
+    document.documentElement.style.scrollSnapType = el ? "y mandatory" : "";
+  }, []);
   // Breathing radial wash: behind the message, and peeking up at the bottom of the logo screen
   const pulse = {
     className: "w-72 h-72 rounded-full pointer-events-none",
@@ -187,6 +204,32 @@ export default function App() {
     </motion.div>
   );
 
+  const historyButton = (
+    <motion.button
+      layoutId="history-button"
+      transition={logoTransition}
+      type="button"
+      onClick={() => setHistoryOpen((o) => !o)}
+      aria-expanded={historyOpen}
+      aria-controls={HISTORY_PANEL_ID}
+      aria-label="Past readings"
+      className="inline-flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-full border border-borderHairline text-xs text-warmUmber hover:text-espressoInk hover:bg-turmericMist/30 transition-colors cursor-pointer"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="w-3.5 h-3.5 stroke-current fill-none stroke-2"
+        aria-hidden="true"
+      >
+        <path
+          d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span className="hidden sm:inline">Past readings</span>
+    </motion.button>
+  );
+
   const handleSignIn = async () => {
     try {
       const signedIn = await signInWithGoogle();
@@ -206,6 +249,16 @@ export default function App() {
       return;
     }
     setView("ritual");
+  };
+
+  const handleRememberChange = async (on: boolean) => {
+    const before = rememberProgression;
+    setRememberProgressionState(on);
+    try {
+      await setRememberProgression(user, on);
+    } catch {
+      setRememberProgressionState(before); // not saved, so show what still applies
+    }
   };
 
   const handleSignOut = async () => {
@@ -228,8 +281,9 @@ export default function App() {
 
     const baseline = computeBaseline(sessions);
     // S_n-1: the newest progression notes. If the last summary failed, an older one still carries the history.
-    const previousSummary =
-      [...sessions].reverse().find((s) => s.summary)?.summary ?? null;
+    const previousSummary = rememberProgression
+      ? ([...sessions].reverse().find((s) => s.summary)?.summary ?? null)
+      : null;
 
     try {
       const res = await analyzeSketch({
@@ -271,7 +325,13 @@ export default function App() {
             // Storage failure fallback
           }
         }
-        if (saved && res.visual_reflection_text) {
+        // Only a real Gemini reading of a drawing becomes notes; the backend has already stopped non-drawings
+        if (
+          saved &&
+          rememberProgression &&
+          res.visual_reflection_text &&
+          res.analysis_sources?.flash === "gemini"
+        ) {
           // Background: T_n (+ S_n-1) -> S_n, stored on this session for next time. Never blocks the results.
           summarizeReading({
             reading_text: res.visual_reflection_text,
@@ -289,6 +349,10 @@ export default function App() {
             });
         }
         setCurrentSessionId(savedId);
+        setSketchPhoto({
+          sessionId: savedId,
+          url: `data:image/jpeg;base64,${base64}`,
+        });
         setAnalysisResult(res);
         setResultIsFresh(true);
         startTransition(() => {
@@ -374,6 +438,7 @@ export default function App() {
 
   const handleDoneResults = () => {
     setAnalysisResult(null);
+    setSketchPhoto(null);
     setCurrentSessionId("");
     setView("landing");
   };
@@ -393,18 +458,23 @@ export default function App() {
       {/* Top Header */}
       <header className="sticky top-0 w-full bg-canvasPaper/85 backdrop-blur-sm z-30">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => {
-              if (view !== "analyzing") {
-                handleDoneResults();
-                window.scrollTo({ top: 0 });
-              }
-            }}
-            aria-label="Unspoken Line home"
-            className="h-12 sm:h-14 cursor-pointer"
-          >
-            {!logoInHero && (
+          {/* While the logo fills the screen, past readings take its corner; they move right as it arrives */}
+          {logoInHero ? (
+            <div className="h-12 sm:h-14 flex items-center">
+              {historyAvailable && historyButton}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (view !== "analyzing") {
+                  handleDoneResults();
+                  window.scrollTo({ top: 0 });
+                }
+              }}
+              aria-label="Unspoken Line home"
+              className="h-12 sm:h-14 cursor-pointer"
+            >
               <motion.img
                 layoutId="brand-logo"
                 transition={logoTransition}
@@ -412,33 +482,11 @@ export default function App() {
                 alt="Unspoken Line"
                 className="h-full w-auto"
               />
-            )}
-          </button>
+            </button>
+          )}
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {historyAvailable && (
-              <button
-                type="button"
-                onClick={() => setHistoryOpen((o) => !o)}
-                aria-expanded={historyOpen}
-                aria-controls={HISTORY_PANEL_ID}
-                aria-label="Past readings"
-                className="inline-flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-full border border-borderHairline text-xs text-warmUmber hover:text-espressoInk hover:bg-turmericMist/30 transition-colors cursor-pointer"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-3.5 h-3.5 stroke-current fill-none stroke-2"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Past readings</span>
-              </button>
-            )}
+            {historyAvailable && !logoInHero && historyButton}
             {firebaseEnabled ? (
               user ? (
                 <div className="flex items-center gap-3">
@@ -477,6 +525,7 @@ export default function App() {
           {view === "landing" && (
             <motion.div
               key="landing"
+              ref={landingRef}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -569,7 +618,15 @@ export default function App() {
 
                 {/* Privacy Badge */}
                 <div className="w-full pb-6">
-                  <PrivacyBadge />
+                  {/* Notes belong to an account; without Firebase (local dev) the guest keeps them locally */}
+                  <PrivacyBadge
+                    remember={rememberProgression}
+                    onRememberChange={
+                      user || !firebaseEnabled
+                        ? handleRememberChange
+                        : undefined
+                    }
+                  />
                 </div>
               </section>
 
@@ -635,7 +692,10 @@ export default function App() {
               }}
               className="w-full"
             >
-              <DrawingTimerRitual onComplete={handleRitualComplete} />
+              <DrawingTimerRitual
+                onComplete={handleRitualComplete}
+                onBack={() => setView("landing")}
+              />
             </motion.div>
           )}
 
@@ -655,6 +715,7 @@ export default function App() {
                 timerDurationSec={timerDurationSec}
                 message={captureMessage}
                 onAnalyze={handleAnalyzeSketch}
+                onBack={() => setView("ritual")}
               />
             </motion.div>
           )}
@@ -714,6 +775,11 @@ export default function App() {
                 onOpenActivity={handleOpenActivity}
                 onDone={handleDoneResults}
                 streamText={resultIsFresh}
+                photoUrl={
+                  sketchPhoto?.sessionId === currentSessionId
+                    ? sketchPhoto.url
+                    : undefined
+                }
               />
             </motion.div>
           )}

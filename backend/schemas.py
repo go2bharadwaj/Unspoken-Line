@@ -68,6 +68,22 @@ class AnalyzeSketchResponse(BaseModel):
 
 
 class FlashResult(BaseModel):
+    # The image check comes first so the model decides it before writing the reading
+    is_hand_drawing: bool = Field(
+        ...,
+        description="True only if the main subject is marks a person drew by hand on paper or a whiteboard.",
+    )
+    text_meaning: Literal["NONE", "INCIDENTAL", "MESSAGE"] = Field(
+        ...,
+        description="NONE: no words. INCIDENTAL: stray letters or words that form no message. MESSAGE: words that say, ask, or instruct something.",
+    )
+    safety_flag: Literal[
+        "SAFE",
+        "CRISIS_SELF_HARM",
+        "ADVERSARIAL_INJECTION",
+        "NON_SKETCH_REJECTED",
+        "NSFW_BLOCKED",
+    ]
     visual_reflection_text: str = Field(
         ...,
         description="Free-form answer to: What does this drawing say about my current mental state?",
@@ -81,13 +97,6 @@ class FlashResult(BaseModel):
     )
     stroke_evidence_bullets: list[str]
     flash_scores: EmotionScores
-    safety_flag: Literal[
-        "SAFE",
-        "CRISIS_SELF_HARM",
-        "ADVERSARIAL_INJECTION",
-        "NON_SKETCH_REJECTED",
-        "NSFW_BLOCKED",
-    ]
 
 
 class JevResult(BaseModel):
