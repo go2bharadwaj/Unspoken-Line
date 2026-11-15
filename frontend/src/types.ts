@@ -108,4 +108,17 @@ export interface StoredSession {
   aura_hex?: string;
   /** Progression notes written after this session (S_n), sent with the next one. */
   summary?: string;
+  /** The reading as shown, so it can be reopened from history. Absent on sessions saved before history existed. */
+  reading_text?: string;
+  progression_text?: string;
+  trend_text?: string;
+  evidence?: string[];
+  primary_class?: Exclude<PrimaryEmotionClass, null>;
+  source?: 'gemini' | 'fallback';
 }
+
+/** Everything about a reading worth keeping besides its scores (photos are never stored). */
+export type SavedReading = Pick<
+  StoredSession,
+  'reading_text' | 'progression_text' | 'trend_text' | 'evidence' | 'primary_class' | 'source'
+>;

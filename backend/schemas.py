@@ -97,8 +97,8 @@ class JevResult(BaseModel):
 
 
 class SummarizeReadingRequest(BaseModel):
-    reading_text: str = Field(..., min_length=1, max_length=8000, description="T_n: the reading of this drawing alone.")
-    progression_text: str | None = Field(None, max_length=8000, description="T_n's progression part, if any.")
+    reading_text: str = Field(..., min_length=1, max_length=20000, description="T_n: the reading of this drawing alone.")
+    progression_text: str | None = Field(None, max_length=20000, description="T_n's progression part, if any.")
     previous_summary: str | None = Field(None, max_length=SUMMARY_MAX_CHARS, description="S_n-1, if any.")
     reading_date: date = Field(..., description="Date the reading was generated (YYYY-MM-DD).")
 
