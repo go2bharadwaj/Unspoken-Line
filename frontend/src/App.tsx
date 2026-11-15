@@ -672,40 +672,42 @@ export default function App() {
                     {/* Progression History Chart */}
                     <ProgressionChart sessions={sessions} />
 
-                    {/* Clear History Inline Confirmation */}
-                    <div className="my-8">
-                      {confirmingClear ? (
-                        <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
-                          <span className="text-xs text-espressoInk">
-                            Clear all stored sessions? This cannot be undone.
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={handleClearHistory}
-                              className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
-                            >
-                              Yes, clear history
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmingClear(false)}
-                              className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
-                            >
-                              Cancel
-                            </button>
+                    {/* Clear History Inline Confirmation; admins keep their sessions as the human eval record */}
+                    {!adminMode && (
+                      <div className="my-8">
+                        {confirmingClear ? (
+                          <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
+                            <span className="text-xs text-espressoInk">
+                              Clear all stored sessions? This cannot be undone.
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleClearHistory}
+                                className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                              >
+                                Yes, clear history
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingClear(false)}
+                                className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingClear(true)}
-                          className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
-                        >
-                          Clear My History
-                        </button>
-                      )}
-                    </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingClear(true)}
+                            className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
+                          >
+                            Clear My History
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
 
