@@ -1,8 +1,10 @@
 import base64
 import binascii
 import io
+import json
 import math
 import re
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -419,6 +421,11 @@ ACTIVITIES: dict[str, list[Activity]] = {
         ),
     ],
 }
+
+# Evidence-backed pack (activity_pack.json) goes after the original three per class, in pack order.
+# frontend/src/lib/activityPack.json must stay identical (enforced by tests/test_activity_pack.py).
+for _cls, _rows in json.loads((Path(__file__).parent / "activity_pack.json").read_text(encoding="utf-8")).items():
+    ACTIVITIES[_cls] += [Activity(**r) for r in _rows]
 
 CRISIS_MESSAGE = (
     "Please know that whatever you are carrying right now, you do not have to hold it alone. "

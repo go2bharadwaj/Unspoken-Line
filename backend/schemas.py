@@ -41,6 +41,13 @@ class Activity(BaseModel):
     subtitle: str
     duration_sec: int
     interaction_type: str
+    # Evidence-pack activities only (see activity_pack.json); the original 15 leave these unset.
+    pack_id: str | None = None
+    steps: list[str] | None = None
+    pacer: dict[str, int] | None = None
+    grade: str | None = None
+    citation: str | None = None
+    taster: bool = False
 
 
 class AnalysisSources(BaseModel):

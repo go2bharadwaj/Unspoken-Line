@@ -200,13 +200,13 @@ def test_trend_text_with_baseline():
 
 
 def test_activities_catalog_structure():
-    """ACTIVITIES catalog has 5 emotion classes x 3 activities = 15 unique IDs."""
+    """ACTIVITIES catalog: 5 classes, the original 3 first, then the evidence pack; all IDs unique."""
     expected_classes = {"Stress", "Anxiety", "Mental Fatigue", "Calm Flow", "Radiant Joy"}
     assert set(ACTIVITIES.keys()) == expected_classes
 
     all_ids = []
     for cls_name, acts in ACTIVITIES.items():
-        assert len(acts) == 3, f"Expected 3 activities for {cls_name}"
+        assert len(acts) >= 3, f"Expected at least the 3 original activities for {cls_name}"
         for act in acts:
             assert act.id
             assert act.title
@@ -215,8 +215,7 @@ def test_activities_catalog_structure():
             assert act.interaction_type
             all_ids.append(act.id)
 
-    assert len(all_ids) == 15
-    assert len(set(all_ids)) == 15, "Activity IDs must all be globally unique"
+    assert len(set(all_ids)) == len(all_ids), "Activity IDs must all be globally unique"
 
 
 def test_analyze_endpoint_fallback_without_api_keys(monkeypatch):
@@ -253,7 +252,8 @@ def test_analyze_endpoint_fallback_without_api_keys(monkeypatch):
     assert merged == data["flash_scores"]
 
     # 3 activities recommended
-    assert len(data["recommended_activities"]) == 3
+    assert len(data["recommended_activities"]) == len(ACTIVITIES[data["primary_emotion_class"]])
+    assert len(data["recommended_activities"]) > 3
     assert data["primary_emotion_class"] in {"Stress", "Anxiety", "Mental Fatigue", "Calm Flow", "Radiant Joy"}
     assert data["visual_reflection_text"] is not None
     assert len(data["stroke_evidence_bullets"]) == 3
