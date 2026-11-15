@@ -19,8 +19,8 @@ import {
   markSession,
   clearHistory,
   deleteSession,
-  getRememberProgression,
-  setRememberProgression,
+  getShowPhoto,
+  setShowPhoto,
 } from "./lib/firebase";
 import { DrawingTimerRitual } from "./components/DrawingTimerRitual";
 import { PhotoCaptureCard } from "./components/PhotoCaptureCard";
@@ -28,6 +28,7 @@ import { AnalysisResultsView } from "./components/AnalysisResultsView";
 import { HistorySidebar, HISTORY_PANEL_ID } from "./components/HistorySidebar";
 import { sessionToResult } from "./lib/history";
 import { newerVersionDeployed, reloadOnceFor } from "./lib/freshness";
+import { isAdmin } from "./lib/admin";
 import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
 import { PrivacyBadge } from "./components/PrivacyBadge";
@@ -89,9 +90,10 @@ export default function App() {
     sessionId: string;
     url: string;
   } | null>(null);
-  // Progression notes (S_n): written after each reading and sent with the next, unless turned off
-  const [rememberProgression, setRememberProgressionState] =
-    useState<boolean>(true);
+  // Whether the photo just read is shown above the reading, or discarded straight away
+  const [showPhoto, setShowPhotoState] = useState<boolean>(true);
+  // Admin accounts evaluate readings: no personalization, every reading as if from a new person
+  const [adminMode, setAdminMode] = useState<boolean>(false);
 
   useEffect(() => {
     const check = async () => {
@@ -117,10 +119,11 @@ export default function App() {
     const unsub = onUserChanged((currentUser) => {
       setUser(currentUser);
       refreshSessions(currentUser);
-      getRememberProgression(currentUser)
-        .then(setRememberProgressionState)
-        // Can't tell what they chose, so don't send or write notes this time
-        .catch(() => setRememberProgressionState(false));
+      getShowPhoto(currentUser)
+        .then(setShowPhotoState)
+        // Can't tell what they chose, so take the private option
+        .catch(() => setShowPhotoState(false));
+      isAdmin(currentUser).then(setAdminMode, () => setAdminMode(false));
     });
     return () => unsub();
   }, []);
@@ -252,13 +255,14 @@ export default function App() {
     setView("ritual");
   };
 
-  const handleRememberChange = async (on: boolean) => {
-    const before = rememberProgression;
-    setRememberProgressionState(on);
+  const handleShowPhotoChange = async (on: boolean) => {
+    const before = showPhoto;
+    setShowPhotoState(on);
+    if (!on) setSketchPhoto(null); // discard any photo still held from this visit
     try {
-      await setRememberProgression(user, on);
+      await setShowPhoto(user, on);
     } catch {
-      setRememberProgressionState(before); // not saved, so show what still applies
+      setShowPhotoState(before); // not saved, so show what still applies
     }
   };
 
@@ -280,11 +284,13 @@ export default function App() {
     setView("analyzing");
     setCaptureMessage(null);
 
-    const baseline = computeBaseline(sessions);
+    // Checked here too, not only from state, so a reading can never start before the check finished
+    const evaluating = await isAdmin(user).catch(() => false);
+    const baseline = evaluating ? null : computeBaseline(sessions);
     // S_n-1: the newest progression notes. If the last summary failed, an older one still carries the history.
-    const previousSummary = rememberProgression
-      ? ([...sessions].reverse().find((s) => s.summary)?.summary ?? null)
-      : null;
+    const previousSummary = evaluating
+      ? null
+      : ([...sessions].reverse().find((s) => s.summary)?.summary ?? null);
 
     try {
       const res = await analyzeSketch({
@@ -329,7 +335,7 @@ export default function App() {
         // Only a real Gemini reading of a drawing becomes notes; the backend has already stopped non-drawings
         if (
           saved &&
-          rememberProgression &&
+          !evaluating &&
           res.visual_reflection_text &&
           res.analysis_sources?.flash === "gemini"
         ) {
@@ -350,10 +356,11 @@ export default function App() {
             });
         }
         setCurrentSessionId(savedId);
-        setSketchPhoto({
-          sessionId: savedId,
-          url: `data:image/jpeg;base64,${base64}`,
-        });
+        setSketchPhoto(
+          showPhoto
+            ? { sessionId: savedId, url: `data:image/jpeg;base64,${base64}` }
+            : null,
+        );
         setAnalysisResult(res);
         setResultIsFresh(true);
         startTransition(() => {
@@ -509,6 +516,14 @@ export default function App() {
             {firebaseEnabled ? (
               user ? (
                 <div className="flex items-center gap-3">
+                  {adminMode && (
+                    <span
+                      title="Admin: readings use no history, and your ratings are the human eval"
+                      className="px-2.5 py-1 rounded-full bg-sunlitAmber/30 border border-sunlitAmber/60 text-[11px] text-espressoInk tracking-wide"
+                    >
+                      Eval mode
+                    </span>
+                  )}
                   <span className="text-xs text-warmUmber hidden sm:inline">
                     {user.displayName || user.email || "Sanctuary Member"}
                   </span>
@@ -639,10 +654,10 @@ export default function App() {
                 <div className="w-full pb-6">
                   {/* Notes belong to an account; without Firebase (local dev) the guest keeps them locally */}
                   <PrivacyBadge
-                    remember={rememberProgression}
-                    onRememberChange={
+                    showPhoto={showPhoto}
+                    onShowPhotoChange={
                       user || !firebaseEnabled
-                        ? handleRememberChange
+                        ? handleShowPhotoChange
                         : undefined
                     }
                   />
@@ -657,40 +672,42 @@ export default function App() {
                     {/* Progression History Chart */}
                     <ProgressionChart sessions={sessions} />
 
-                    {/* Clear History Inline Confirmation */}
-                    <div className="my-8">
-                      {confirmingClear ? (
-                        <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
-                          <span className="text-xs text-espressoInk">
-                            Clear all stored sessions? This cannot be undone.
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={handleClearHistory}
-                              className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
-                            >
-                              Yes, clear history
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmingClear(false)}
-                              className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
-                            >
-                              Cancel
-                            </button>
+                    {/* Clear History Inline Confirmation; admins keep their sessions as the human eval record */}
+                    {!adminMode && (
+                      <div className="my-8">
+                        {confirmingClear ? (
+                          <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
+                            <span className="text-xs text-espressoInk">
+                              Clear all stored sessions? This cannot be undone.
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleClearHistory}
+                                className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                              >
+                                Yes, clear history
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingClear(false)}
+                                className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingClear(true)}
-                          className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
-                        >
-                          Clear My History
-                        </button>
-                      )}
-                    </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingClear(true)}
+                            className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
+                          >
+                            Clear My History
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
 

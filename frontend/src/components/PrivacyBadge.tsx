@@ -1,12 +1,12 @@
 import React from 'react';
 
 interface Props {
-  /** Progression notes switch; shown only where there is history to remember (signed in) */
-  remember?: boolean;
-  onRememberChange?: (on: boolean) => void;
+  /** Whether the photo is shown with the reading; the switch appears only for signed-in people */
+  showPhoto?: boolean;
+  onShowPhotoChange?: (on: boolean) => void;
 }
 
-export const PrivacyBadge: React.FC<Props> = ({ remember, onRememberChange }) => {
+export const PrivacyBadge: React.FC<Props> = ({ showPhoto, onShowPhotoChange }) => {
   return (
     <div className="w-full max-w-md mx-auto rounded-2xl border border-borderHairline bg-turmericMist/20 p-4 flex items-start gap-3.5 text-left">
       <div className="p-2 rounded-xl bg-canvasPaper border border-borderHairline shrink-0 text-warmUmber">
@@ -31,32 +31,32 @@ export const PrivacyBadge: React.FC<Props> = ({ remember, onRememberChange }) =>
           No words spoken. Your sketch photo is read in memory and never stored—only your emotional rhythm stays with you.
         </p>
 
-        {onRememberChange && (
+        {onShowPhotoChange && (
           <div className="mt-3 pt-3 border-t border-borderHairline flex items-start justify-between gap-3">
             <div>
-              <span id="remember-label" className="block text-xs sm:text-sm font-medium text-espressoInk">
-                Remember my progression
+              <span id="photo-label" className="block text-xs sm:text-sm font-medium text-espressoInk">
+                Show my drawing with the reading
               </span>
-              <span id="remember-hint" className="block text-xs text-warmUmber leading-relaxed">
-                {remember
-                  ? 'Short private notes after each reading let the next one see how you have changed.'
-                  : 'Off: each reading stands alone, and no new notes are written.'}
+              <span id="photo-hint" className="block text-xs text-warmUmber leading-relaxed">
+                {showPhoto
+                  ? 'Your photo appears above your reading on this screen, then is discarded. It is never stored.'
+                  : 'Off: your photo is discarded the moment it is read and never shown.'}
               </span>
             </div>
             <button
               type="button"
               role="switch"
-              aria-checked={remember}
-              aria-labelledby="remember-label"
-              aria-describedby="remember-hint"
-              onClick={() => onRememberChange(!remember)}
+              aria-checked={showPhoto}
+              aria-labelledby="photo-label"
+              aria-describedby="photo-hint"
+              onClick={() => onShowPhotoChange(!showPhoto)}
               className={`relative shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors cursor-pointer ${
-                remember ? 'bg-peachTerracotta' : 'bg-borderHairline'
+                showPhoto ? 'bg-peachTerracotta' : 'bg-borderHairline'
               }`}
             >
               <span
                 className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-canvasPaper shadow-sm transition-transform ${
-                  remember ? 'translate-x-5' : ''
+                  showPhoto ? 'translate-x-5' : ''
                 }`}
               />
             </button>
