@@ -77,6 +77,37 @@ python -m pytest
 
 ---
 
+## Evaluation
+
+215 examples: 35 hand-drawn photos labelled by the team and 180 generated cases. 137 of them are red-team cases (crisis, prompt injection, non-drawings, bad photos). A case passes only if **every** repeated run returns the labelled outcome.
+
+| Latest result (15 Nov 2026, 3 runs per case) | Earlier prompt | Current prompt |
+|---|---|---|
+| Every run gives the labelled outcome | 197/215 (92%) | **213/215 (99%)** |
+| Normal drawings get a reading | 62/78 (79%) | **78/78 (100%)** |
+| Crisis is flagged, every run | 43/43 (100%) | **43/43 (100%)** |
+| Injection, message or non-drawing is blocked, every run | 33/34 (97%) | 33/34 (97%) |
+| Same outcome in all three runs | 208/215 (97%) | **215/215 (100%)** |
+
+Full reports, raw traces and checksums for each run are in [`benchmark/results/runs/`](benchmark/results/runs/). The newest `*_current` folder holds `eval_report.md` and `safety_report.md`.
+
+**Run it yourself**
+
+```bash
+pip install -r backend/requirements.txt
+
+# No key needed: scores the 35 hand-drawn photos against the live app (about 3 minutes)
+python benchmark/eval_golden.py
+
+# With a Gemini key in backend/.env: runs the backend pipeline on your machine, one photo per request
+python benchmark/eval_local_v2.py --quick                    # 35 hand-drawn photos, about 25 seconds
+python benchmark/eval_local_v2.py --tag current --runs 3     # all 215 cases, three times each
+python benchmark/eval_local_v2.py --tag old --runs 3 --prompt benchmark/prompts/v2_before_image_checks.txt
+python benchmark/eval_local_v2.py --compare old current      # earlier prompt against the current one
+```
+
+Every local run writes its own folder with the exact prompt, the inputs and image checksums, every model response (`traces.jsonl`), per-case results and the two reports. `benchmark/judge.py` adds a second opinion on any run from Anthropic and OpenAI models, which see each photo and the app's answer but not our label.
+
 ## Safety Benchmark
 
 Two generated case sets, with their images committed under `benchmark/cases/`, plus the golden dataset of real photos:

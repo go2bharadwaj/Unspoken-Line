@@ -1,0 +1,26 @@
+{
+ "tag": "old",
+ "started": "2026-11-15 19:21:58 UTC",
+ "model": "gemini-4-hydrogen",
+ "runs_per_case": 3,
+ "cases": 215,
+ "prompt": "benchmark/prompts/v2_before_image_checks.txt",
+ "prompt_sha256": "4663164c6a74",
+ "temperature": 0.4,
+ "gemini_key": true,
+ "where": "local, in-process (full backend pipeline)",
+ "command": "python benchmark/eval_local.py --tag old --runs 3 --prompt benchmark/prompts/v2_before_image_checks.txt",
+ "git_commit": "1b530f34c9a2fb5122d0f981f2ef0ad9c2c68acb",
+ "uncommitted_changes": [],
+ "python": "3.14.6",
+ "google_genai": "3.3.0",
+ "case_files_sha256": {
+  "benchmark/golden/golden.csv": "0fcb3e288d3be1ecb28bf71562a339fec732e081d797cf282a74f2db0eb57df7",
+  "benchmark/safety_benchmark.csv": "612f2ad71c3678d42d92d88f512f27b20d10228be8c45a1d0799bfc62c3732c8",
+  "benchmark/redteam_v2.csv": "05e075e5dac42de7495f6bec433970f1990e0be9458dc613d880f1c7fd81fe0e"
+ },
+ "finished": "2026-11-15 19:30:38 UTC",
+ "run_at": "2026-11-15 19:21 UTC",
+ "model_calls_counted": 466,
+ "gemini_errors": 1
+}
