@@ -293,28 +293,28 @@ export async function clearHistory(user: User | null): Promise<void> {
   }
 }
 
-const LOCAL_MEMORY_KEY = 'unspoken-line.remember-progression.v1';
+const LOCAL_SHOW_PHOTO_KEY = 'unspoken-line.show-photo.v1';
 
-/** Whether readings may write and use progression notes. On unless the person turned it off; kept with the account. */
-export async function getRememberProgression(user: User | null): Promise<boolean> {
+/** Whether the photo just read is shown above the reading (never stored either way). On unless turned off; kept with the account. */
+export async function getShowPhoto(user: User | null): Promise<boolean> {
   if (user && db) {
     const snap = await getDoc(doc(db, 'users', user.uid));
-    return snap.data()?.remember_progression !== false;
+    return snap.data()?.show_photo !== false;
   }
   try {
-    return localStorage.getItem(LOCAL_MEMORY_KEY) !== 'off';
+    return localStorage.getItem(LOCAL_SHOW_PHOTO_KEY) !== 'off';
   } catch {
     return true;
   }
 }
 
-export async function setRememberProgression(user: User | null, on: boolean): Promise<void> {
+export async function setShowPhoto(user: User | null, on: boolean): Promise<void> {
   if (user && db) {
-    await setDoc(doc(db, 'users', user.uid), { remember_progression: on });
+    await setDoc(doc(db, 'users', user.uid), { show_photo: on });
     return;
   }
   try {
-    localStorage.setItem(LOCAL_MEMORY_KEY, on ? 'on' : 'off');
+    localStorage.setItem(LOCAL_SHOW_PHOTO_KEY, on ? 'on' : 'off');
   } catch {
     // Storage disabled: the choice lasts until reload
   }

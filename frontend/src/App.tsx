@@ -19,8 +19,8 @@ import {
   markSession,
   clearHistory,
   deleteSession,
-  getRememberProgression,
-  setRememberProgression,
+  getShowPhoto,
+  setShowPhoto,
 } from "./lib/firebase";
 import { DrawingTimerRitual } from "./components/DrawingTimerRitual";
 import { PhotoCaptureCard } from "./components/PhotoCaptureCard";
@@ -89,9 +89,8 @@ export default function App() {
     sessionId: string;
     url: string;
   } | null>(null);
-  // Progression notes (S_n): written after each reading and sent with the next, unless turned off
-  const [rememberProgression, setRememberProgressionState] =
-    useState<boolean>(true);
+  // Whether the photo just read is shown above the reading, or discarded straight away
+  const [showPhoto, setShowPhotoState] = useState<boolean>(true);
 
   useEffect(() => {
     const check = async () => {
@@ -117,10 +116,10 @@ export default function App() {
     const unsub = onUserChanged((currentUser) => {
       setUser(currentUser);
       refreshSessions(currentUser);
-      getRememberProgression(currentUser)
-        .then(setRememberProgressionState)
-        // Can't tell what they chose, so don't send or write notes this time
-        .catch(() => setRememberProgressionState(false));
+      getShowPhoto(currentUser)
+        .then(setShowPhotoState)
+        // Can't tell what they chose, so take the private option
+        .catch(() => setShowPhotoState(false));
     });
     return () => unsub();
   }, []);
@@ -252,13 +251,14 @@ export default function App() {
     setView("ritual");
   };
 
-  const handleRememberChange = async (on: boolean) => {
-    const before = rememberProgression;
-    setRememberProgressionState(on);
+  const handleShowPhotoChange = async (on: boolean) => {
+    const before = showPhoto;
+    setShowPhotoState(on);
+    if (!on) setSketchPhoto(null); // discard any photo still held from this visit
     try {
-      await setRememberProgression(user, on);
+      await setShowPhoto(user, on);
     } catch {
-      setRememberProgressionState(before); // not saved, so show what still applies
+      setShowPhotoState(before); // not saved, so show what still applies
     }
   };
 
@@ -282,9 +282,8 @@ export default function App() {
 
     const baseline = computeBaseline(sessions);
     // S_n-1: the newest progression notes. If the last summary failed, an older one still carries the history.
-    const previousSummary = rememberProgression
-      ? ([...sessions].reverse().find((s) => s.summary)?.summary ?? null)
-      : null;
+    const previousSummary =
+      [...sessions].reverse().find((s) => s.summary)?.summary ?? null;
 
     try {
       const res = await analyzeSketch({
@@ -329,7 +328,6 @@ export default function App() {
         // Only a real Gemini reading of a drawing becomes notes; the backend has already stopped non-drawings
         if (
           saved &&
-          rememberProgression &&
           res.visual_reflection_text &&
           res.analysis_sources?.flash === "gemini"
         ) {
@@ -350,10 +348,11 @@ export default function App() {
             });
         }
         setCurrentSessionId(savedId);
-        setSketchPhoto({
-          sessionId: savedId,
-          url: `data:image/jpeg;base64,${base64}`,
-        });
+        setSketchPhoto(
+          showPhoto
+            ? { sessionId: savedId, url: `data:image/jpeg;base64,${base64}` }
+            : null,
+        );
         setAnalysisResult(res);
         setResultIsFresh(true);
         startTransition(() => {
@@ -639,10 +638,10 @@ export default function App() {
                 <div className="w-full pb-6">
                   {/* Notes belong to an account; without Firebase (local dev) the guest keeps them locally */}
                   <PrivacyBadge
-                    remember={rememberProgression}
-                    onRememberChange={
+                    showPhoto={showPhoto}
+                    onShowPhotoChange={
                       user || !firebaseEnabled
-                        ? handleRememberChange
+                        ? handleShowPhotoChange
                         : undefined
                     }
                   />
