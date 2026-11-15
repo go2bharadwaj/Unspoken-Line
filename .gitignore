@@ -22,9 +22,10 @@ dist/
 build/
 
 
-# OS metadata
+# OS metadata and editor lock files
 .DS_Store
 Thumbs.db
+~$*
 
 # Agent instructions (local only)
 CLAUDE.md

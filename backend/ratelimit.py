@@ -8,7 +8,7 @@ DAILY_CAP = int(os.getenv("DAILY_ANALYZE_CAP", "1000"))
 # Sealing/opening history is cheap (no Gemini), so it gets its own, higher limit and skips the daily cap
 VAULT_PER_USER_HOUR = int(os.getenv("RATE_LIMIT_VAULT_PER_USER_HOUR", "300"))
 
-# ponytail: in-memory, single process (one VM). Use Redis/Cloud Armor if we scale out.
+# shortcut: in-memory, single process (one VM). Use Redis/Cloud Armor if we scale out.
 _hits: dict[str, deque] = defaultdict(deque)
 _day = {"n": 0, "start": time.time()}
 
