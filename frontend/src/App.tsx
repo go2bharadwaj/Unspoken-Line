@@ -684,7 +684,7 @@ export default function App() {
                     <ProgressionChart sessions={sessions} />
 
                     {/* Clear History Inline Confirmation; admins keep their sessions as the human eval record */}
-                    {!adminMode && (
+                    {adminMode === false && (
                       <div className="my-8">
                         {confirmingClear ? (
                           <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
