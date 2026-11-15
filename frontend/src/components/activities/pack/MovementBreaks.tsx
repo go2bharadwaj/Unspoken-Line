@@ -4,15 +4,18 @@ import { C, Frame, PackProps, Shell, useEndBowl, useStepIndex } from './kit';
 
 // Family: FRAME. Motif: a one-stroke ink figure: shoulder roll -> march on the spot -> reach up and
 // shake out. A sage trail line follows the hands.
-const L = { stroke: C.ink, strokeWidth: 2.5, strokeLinecap: 'round' as const, fill: 'none' };
-const loop = { duration: 4, repeat: Infinity, ease: 'easeInOut' as const };
-const origin = (x: number, y: number) => ({ transformOrigin: `${x}px ${y}px` });
+const L = { stroke: C.ink, strokeWidth: 3, strokeLinecap: 'round' as const, fill: 'none' };
+// 'mirror' plays the keyframes back and forth, so reaching up then lowering never snaps.
+const loop = { duration: 4, repeat: Infinity, repeatType: 'mirror' as const, ease: 'easeInOut' as const };
+const pivot = { originX: 0.5, originY: 0 };
 
-// Rotation keyframes per step: [left arm, right arm, left leg, right leg].
+// Per step: [left arm, right arm, left leg, right leg] rotation keyframes. framer-motion rotates SVG
+// elements about their own bounding box, so every limb is drawn straight down from its joint and
+// pivots from the top-centre of that box (originX 0.5, originY 0) = the shoulder / hip.
 const POSE: number[][][] = [
-  [[0, 14, 0, -10, 0], [0, -14, 0, 10, 0], [0], [0]],
+  [[0, 24, 0, -18, 0], [0, -24, 0, 18, 0], [0], [0]],
   [[20, -20, 20], [-20, 20, -20], [-16, 16, -16], [16, -16, 16]],
-  [[0, 170, 182, 166, 182, 170], [0, -170, -182, -166, -182, -170], [0], [0]],
+  [[0, 168, 178, 162, 178, 168], [0, -168, -178, -162, -178, -168], [0], [0]],
 ];
 const TRAIL = [
   'M 150 112 Q 160 92 176 100 T 150 112',
@@ -48,10 +51,17 @@ export const MovementBreaks: React.FC<PackProps> = ({ activity, durationSec, onC
             >
               <circle cx="200" cy="62" r="13" {...L} />
               <path d="M 200 76 L 200 140" {...L} />
-              <motion.path d="M 200 94 L 190 132" {...L} style={origin(200, 94)} animate={a(0)} transition={loop} />
-              <motion.path d="M 200 94 L 210 132" {...L} style={origin(200, 94)} animate={a(1)} transition={loop} />
-              <motion.path d="M 200 140 L 200 190" {...L} style={origin(200, 140)} animate={a(2)} transition={loop} />
-              <motion.path d="M 200 140 L 200 190" {...L} style={origin(200, 140)} animate={a(3)} transition={loop} />
+              <path d="M 184 94 L 216 94" {...L} />
+              <motion.g style={pivot} animate={a(0)} transition={loop}>
+                <path d="M 184 94 L 184 146" {...L} />
+                <circle cx="184" cy="150" r="4" fill={C.ink} />
+              </motion.g>
+              <motion.g style={pivot} animate={a(1)} transition={loop}>
+                <path d="M 216 94 L 216 146" {...L} />
+                <circle cx="216" cy="150" r="4" fill={C.ink} />
+              </motion.g>
+              <motion.path d="M 194 140 L 194 190" {...L} style={pivot} animate={a(2)} transition={loop} />
+              <motion.path d="M 206 140 L 206 190" {...L} style={pivot} animate={a(3)} transition={loop} />
             </motion.g>
             <path d="M 120 192 L 280 192" stroke={C.hair} strokeWidth="1" />
           </svg>

@@ -26,7 +26,7 @@ export const WorryPostponement: React.FC<PackProps> = ({ activity, durationSec, 
             <circle cx="130" cy="65" r="9" fill="none" stroke={C.umber} strokeOpacity="0.4" strokeWidth="1" />
             <motion.line
               x1="130" y1="65" x2="130" y2="58" stroke={C.umber} strokeWidth="1.2" strokeLinecap="round"
-              style={{ originX: '130px', originY: '65px' }}
+              style={{ originX: 0.5, originY: 1 }}
               animate={still ? {} : { rotate: [0, 0, 360, 360, 360] }}
               transition={t}
             />
