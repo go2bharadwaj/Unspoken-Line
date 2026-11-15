@@ -1,17 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TimerDurationSec } from '../types';
 import { processImageFile } from '../lib/image';
+import { BackButton } from './BackButton';
 
 interface Props {
   timerDurationSec: TimerDurationSec;
   message?: string | null;
-  onAnalyze: (base64: string) => void;
+  onAnalyze: (base64: string) => Promise<void>;
+  onBack: () => void;
 }
 
 export const PhotoCaptureCard: React.FC<Props> = ({
   timerDurationSec,
   message,
   onAnalyze,
+  onBack,
 }) => {
   const [selectedBlob, setSelectedBlob] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -131,16 +134,19 @@ export const PhotoCaptureCard: React.FC<Props> = ({
 
     try {
       const { base64 } = await processImageFile(selectedBlob);
-      onAnalyze(base64);
+      await onAnalyze(base64);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Could not prepare image.';
       setErrorText(msg);
+    } finally {
+      // A fast answer (e.g. a rejection) can return to this same card before it ever unmounts
       setProcessing(false);
     }
   };
 
   return (
     <div className="w-full max-w-md mx-auto p-6 flex flex-col items-center text-center">
+      <BackButton onClick={onBack} label="Back to the timer" />
       <span className="text-xs uppercase tracking-widest text-warmUmber mb-2">
         {timerDurationSec}s Sketch Completed
       </span>

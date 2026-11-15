@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { TimerDurationSec } from '../types';
 import { unlockAudio, playChime } from '../lib/sound';
+import { BackButton } from './BackButton';
 
 interface Props {
   onComplete: (durationSec: TimerDurationSec) => void;
+  onBack: () => void;
 }
 
 type RitualState = 'idle' | 'pause' | 'drawing' | 'ended';
 
-export const DrawingTimerRitual: React.FC<Props> = ({ onComplete }) => {
+export const DrawingTimerRitual: React.FC<Props> = ({ onComplete, onBack }) => {
   const [duration, setDuration] = useState<TimerDurationSec>(15);
   const [state, setState] = useState<RitualState>('idle');
   const [pauseCount, setPauseCount] = useState(3);
@@ -83,6 +85,7 @@ export const DrawingTimerRitual: React.FC<Props> = ({ onComplete }) => {
 
       {state === 'idle' && (
         <div className="w-full max-w-md mx-auto flex flex-col items-center">
+          <BackButton onClick={onBack} />
           <span className="text-xs uppercase tracking-widest text-warmUmber mb-2">
             Non-Verbal Ritual
           </span>

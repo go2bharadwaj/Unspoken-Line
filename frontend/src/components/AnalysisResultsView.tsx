@@ -15,6 +15,8 @@ interface Props {
   onDone: () => void;
   /** A reading that was just generated streams in; one reopened from history shows at once */
   streamText?: boolean;
+  /** The photo just analyzed, held only in this tab's memory; past readings have none */
+  photoUrl?: string;
 }
 
 const SCORE_CONFIGS: Array<{
@@ -34,6 +36,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
   onOpenActivity,
   onDone,
   streamText = false,
+  photoUrl,
 }) => {
   const [learnMoreOpen, setLearnMoreOpen] = useState(false);
   // The progression part follows the reading, like a second paragraph being written
@@ -63,7 +66,18 @@ export const AnalysisResultsView: React.FC<Props> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 flex flex-col gap-6 text-left">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        {/* The practices sit below a long reading, so offer a way straight to them */}
+        <button
+          type="button"
+          onClick={() =>
+            document.getElementById('practices')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-turmericMist/50 border border-peachTerracotta/40 text-xs font-medium text-espressoInk hover:bg-turmericMist/80 transition-colors cursor-pointer"
+        >
+          <PlayIcon className="w-3 h-3" />
+          Try a practice
+        </button>
         <button
           type="button"
           onClick={onDone}
@@ -77,6 +91,19 @@ export const AnalysisResultsView: React.FC<Props> = ({
         <p className="rounded-2xl border border-dashed border-borderHairline px-5 py-4 text-sm text-warmUmber">
           This session was saved before readings were kept, so only its scores are here.
         </p>
+      )}
+
+      {photoUrl && (
+        <figure className="rounded-3xl border border-borderHairline bg-turmericMist/15 p-3 flex flex-col items-center gap-2">
+          <img
+            src={photoUrl}
+            alt="The drawing you just photographed"
+            className="w-full max-h-72 sm:max-h-96 object-contain rounded-2xl"
+          />
+          <figcaption className="text-[11px] text-warmUmber">
+            Your drawing · shown only on this screen, never saved
+          </figcaption>
+        </figure>
       )}
 
       {/* Gemini's free-form reading of the drawing */}
@@ -103,24 +130,32 @@ export const AnalysisResultsView: React.FC<Props> = ({
         </section>
       )}
 
-      {/* Recommended practices: small squares side by side */}
-      <section>
-        <h3 className="text-xs uppercase tracking-widest text-warmUmber mb-3">
-          Three Practices for {primaryClass}
+      {/* Recommended practices: small squares side by side, styled as things to press */}
+      <section id="practices" className="scroll-mt-24">
+        <h3 className="font-serif text-xl sm:text-2xl font-medium text-espressoInk tracking-tight">
+          Try a practice
         </h3>
+        <p className="text-sm text-warmUmber mb-3">
+          Three short exercises for {primaryClass}. Tap one to begin.
+        </p>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {activities.slice(0, 3).map((act) => (
             <button
               key={act.id}
               type="button"
               onClick={() => onOpenActivity(act)}
-              className="aspect-square p-2.5 sm:p-4 rounded-2xl border border-borderHairline bg-turmericMist/20 hover:bg-turmericMist/50 text-left transition-colors flex flex-col justify-between cursor-pointer group"
+              className="aspect-square p-2.5 sm:p-4 rounded-2xl border border-peachTerracotta/40 bg-turmericMist/40 hover:bg-turmericMist/70 hover:border-peachTerracotta text-left transition-colors flex flex-col justify-between cursor-pointer group"
             >
-              <span className="font-serif text-sm sm:text-lg leading-tight font-medium text-espressoInk group-hover:text-peachTerracotta transition-colors">
-                {act.title}
+              <span className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-peachTerracotta text-canvasPaper flex items-center justify-center group-hover:scale-105 transition-transform">
+                <PlayIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 ml-0.5" />
               </span>
-              <span className="text-[11px] sm:text-xs text-warmUmber">
-                {act.duration_sec}s
+              <span>
+                <span className="block font-serif text-sm sm:text-lg leading-tight font-medium text-espressoInk">
+                  {act.title}
+                </span>
+                <span className="block text-[11px] sm:text-xs text-warmUmber mt-0.5">
+                  {act.duration_sec}s
+                </span>
               </span>
             </button>
           ))}
@@ -286,3 +321,9 @@ export const AnalysisResultsView: React.FC<Props> = ({
     </div>
   );
 };
+
+const PlayIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 24 24" className={`fill-current ${className ?? ''}`} aria-hidden="true">
+    <path d="M7 4.5v15l13-7.5z" />
+  </svg>
+);
