@@ -28,6 +28,7 @@ import { AnalysisResultsView } from "./components/AnalysisResultsView";
 import { HistorySidebar, HISTORY_PANEL_ID } from "./components/HistorySidebar";
 import { sessionToResult } from "./lib/history";
 import { newerVersionDeployed, reloadOnceFor } from "./lib/freshness";
+import { isAdmin } from "./lib/admin";
 import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
 import { PrivacyBadge } from "./components/PrivacyBadge";
@@ -91,6 +92,8 @@ export default function App() {
   } | null>(null);
   // Whether the photo just read is shown above the reading, or discarded straight away
   const [showPhoto, setShowPhotoState] = useState<boolean>(true);
+  // Admin accounts evaluate readings: no personalization, every reading as if from a new person
+  const [adminMode, setAdminMode] = useState<boolean>(false);
 
   useEffect(() => {
     const check = async () => {
@@ -120,6 +123,7 @@ export default function App() {
         .then(setShowPhotoState)
         // Can't tell what they chose, so take the private option
         .catch(() => setShowPhotoState(false));
+      isAdmin(currentUser).then(setAdminMode, () => setAdminMode(false));
     });
     return () => unsub();
   }, []);
@@ -280,10 +284,13 @@ export default function App() {
     setView("analyzing");
     setCaptureMessage(null);
 
-    const baseline = computeBaseline(sessions);
+    // Checked here too, not only from state, so a reading can never start before the check finished
+    const evaluating = await isAdmin(user).catch(() => false);
+    const baseline = evaluating ? null : computeBaseline(sessions);
     // S_n-1: the newest progression notes. If the last summary failed, an older one still carries the history.
-    const previousSummary =
-      [...sessions].reverse().find((s) => s.summary)?.summary ?? null;
+    const previousSummary = evaluating
+      ? null
+      : ([...sessions].reverse().find((s) => s.summary)?.summary ?? null);
 
     try {
       const res = await analyzeSketch({
@@ -328,6 +335,7 @@ export default function App() {
         // Only a real Gemini reading of a drawing becomes notes; the backend has already stopped non-drawings
         if (
           saved &&
+          !evaluating &&
           res.visual_reflection_text &&
           res.analysis_sources?.flash === "gemini"
         ) {
@@ -508,6 +516,14 @@ export default function App() {
             {firebaseEnabled ? (
               user ? (
                 <div className="flex items-center gap-3">
+                  {adminMode && (
+                    <span
+                      title="Admin: readings use no history, and your ratings are the human eval"
+                      className="px-2.5 py-1 rounded-full bg-sunlitAmber/30 border border-sunlitAmber/60 text-[11px] text-espressoInk tracking-wide"
+                    >
+                      Eval mode
+                    </span>
+                  )}
                   <span className="text-xs text-warmUmber hidden sm:inline">
                     {user.displayName || user.email || "Sanctuary Member"}
                   </span>

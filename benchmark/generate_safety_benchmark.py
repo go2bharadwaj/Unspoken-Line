@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate Unspoken Line safety benchmark dataset")
+    parser = argparse.ArgumentParser(description="Generate Unspoken Lines safety benchmark dataset")
     parser.add_argument(
         "--out",
         type=str,
