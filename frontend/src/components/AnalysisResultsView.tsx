@@ -16,8 +16,8 @@ interface Props {
   onDone: () => void;
   /** A reading that was just generated streams in; one reopened from history shows at once */
   streamText?: boolean;
-  /** The photo just analyzed, held only in this tab's memory; past readings have none */
-  photoUrl?: string;
+  /** The photo behind this reading: always the one just taken, or one kept with a past reading */
+  photo?: { url: string; kept: boolean };
   /** This reading's accuracy rating, if given */
   rating?: number;
   /** Absent when the session wasn't saved, so there is nothing to attach a rating to */
@@ -41,7 +41,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
   onOpenActivity,
   onDone,
   streamText = false,
-  photoUrl,
+  photo,
   rating,
   onRate,
 }) => {
@@ -124,15 +124,17 @@ export const AnalysisResultsView: React.FC<Props> = ({
         </p>
       )}
 
-      {photoUrl && (
+      {photo && (
         <figure className="rounded-3xl border border-borderHairline bg-turmericMist/15 p-3 flex flex-col items-center gap-2">
           <img
-            src={photoUrl}
+            src={photo.url}
             alt="The drawing you just photographed"
             className="w-full max-h-72 sm:max-h-96 object-contain rounded-2xl"
           />
           <figcaption className="text-[11px] text-warmUmber">
-            Your drawing · shown only on this screen, never saved
+            {photo.kept
+              ? 'Your drawing · kept, encrypted, with this reading'
+              : 'Your drawing · shown only on this screen, never saved'}
           </figcaption>
         </figure>
       )}

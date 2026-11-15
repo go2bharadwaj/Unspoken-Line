@@ -55,7 +55,7 @@ nano backend/.env
 docker compose up -d --build
 ```
 
-`DATA_ENCRYPTION_KEY` encrypts everyone's saved history. Make it once, store a copy outside the VM (a password manager or Secret Manager), and never change it: a lost or replaced key makes all saved readings unreadable.
+`DATA_ENCRYPTION_KEY` encrypts everyone's saved history. The automated deploy (`deploy/deploy.sh`) starts the API with `/opt/app/app.env`, so put the key there as well as in `backend/.env`. Make it once, store a copy outside the VM (a password manager or Secret Manager), and never change it: a lost or replaced key makes all saved readings unreadable.
 
 ```bash
 python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"

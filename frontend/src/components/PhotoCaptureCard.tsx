@@ -156,7 +156,7 @@ export const PhotoCaptureCard: React.FC<Props> = ({
       </h2>
 
       <p className="text-warmUmber text-sm leading-relaxed mb-6">
-        Hold your paper flat in natural light. Your image is analyzed in memory and immediately discarded.
+        Hold your paper flat in natural light. Your image is analyzed in memory and discarded, unless you've chosen to keep your photos.
       </p>
 
       {/* Safety / Retry message if present */}

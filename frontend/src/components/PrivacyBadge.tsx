@@ -1,12 +1,12 @@
 import React from 'react';
 
 interface Props {
-  /** Whether the photo is shown with the reading; the switch appears only for signed-in people */
-  showPhoto?: boolean;
-  onShowPhotoChange?: (on: boolean) => void;
+  /** Discard photos after reading (default) or keep them sealed with the reading; switch only for signed-in people */
+  discardPhoto?: boolean;
+  onDiscardPhotoChange?: (on: boolean) => void;
 }
 
-export const PrivacyBadge: React.FC<Props> = ({ showPhoto, onShowPhotoChange }) => {
+export const PrivacyBadge: React.FC<Props> = ({ discardPhoto, onDiscardPhotoChange }) => {
   return (
     <div className="w-full max-w-md mx-auto rounded-2xl border border-borderHairline bg-turmericMist/20 p-4 flex items-start gap-3.5 text-left">
       <div className="p-2 rounded-xl bg-canvasPaper border border-borderHairline shrink-0 text-warmUmber">
@@ -28,35 +28,35 @@ export const PrivacyBadge: React.FC<Props> = ({ showPhoto, onShowPhotoChange }) 
           Sanctuary Privacy Promise
         </h4>
         <p className="text-xs sm:text-sm text-espressoInk leading-relaxed">
-          No words spoken. Your sketch photo is read in memory and never stored—only your emotional rhythm stays with you.
+          No words spoken. Your sketch photo is read in memory and discarded unless you choose to keep it—only your emotional rhythm stays with you.
         </p>
 
-        {onShowPhotoChange && (
+        {onDiscardPhotoChange && (
           <div className="mt-3 pt-3 border-t border-borderHairline flex items-start justify-between gap-3">
             <div>
               <span id="photo-label" className="block text-xs sm:text-sm font-medium text-espressoInk">
-                Show my drawing with the reading
+                Discard my photo after reading
               </span>
               <span id="photo-hint" className="block text-xs text-warmUmber leading-relaxed">
-                {showPhoto
-                  ? 'Your photo appears above your reading on this screen, then is discarded. It is never stored.'
-                  : 'Off: your photo is discarded the moment it is read and never shown.'}
+                {discardPhoto
+                  ? 'Your photo shows with your reading, then is discarded. It is never stored.'
+                  : 'Off: your photo is kept, encrypted, with each reading so you can see it again. Deleting a reading deletes its photo.'}
               </span>
             </div>
             <button
               type="button"
               role="switch"
-              aria-checked={showPhoto}
+              aria-checked={discardPhoto}
               aria-labelledby="photo-label"
               aria-describedby="photo-hint"
-              onClick={() => onShowPhotoChange(!showPhoto)}
+              onClick={() => onDiscardPhotoChange(!discardPhoto)}
               className={`relative shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors cursor-pointer ${
-                showPhoto ? 'bg-peachTerracotta' : 'bg-borderHairline'
+                discardPhoto ? 'bg-peachTerracotta' : 'bg-borderHairline'
               }`}
             >
               <span
                 className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-canvasPaper shadow-sm transition-transform ${
-                  showPhoto ? 'translate-x-5' : ''
+                  discardPhoto ? 'translate-x-5' : ''
                 }`}
               />
             </button>

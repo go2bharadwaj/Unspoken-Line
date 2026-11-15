@@ -2,7 +2,7 @@
 // Runs against the Firestore emulator with the repo's firestore.rules.
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'node:fs';
-import { doc, setDoc, addDoc, updateDoc, getDoc, collection, serverTimestamp, deleteField } from 'firebase/firestore';
+import { doc, setDoc, addDoc, updateDoc, getDoc, deleteDoc, collection, serverTimestamp, deleteField } from 'firebase/firestore';
 
 const env = await initializeTestEnvironment({
   projectId: 'demo-rules',
@@ -55,14 +55,25 @@ await check('legacy: calm_anchor on unmigrated doc still allowed', updateDoc(old
 
 // Account settings
 const me = doc(alice, 'users/alice');
-await check('settings: show_photo', setDoc(me, { show_photo: false }, { merge: true }), true);
+await check('settings: discard_photo', setDoc(me, { discard_photo: false }, { merge: true }), true);
+await check('settings: retired show_photo rejected', setDoc(me, { show_photo: true }, { merge: true }), false);
 await check('settings: sealed profile', setDoc(me, { profile: SEALED }, { merge: true }), true);
 await check('settings: plain age rejected', setDoc(me, { age: 34 }, { merge: true }), false);
 await check('settings: plain profile rejected', setDoc(me, { profile: '{"age":34}' }, { merge: true }), false);
 await env.withSecurityRulesDisabled(async (c) => setDoc(doc(c.firestore(), 'users/carol'), { remember_progression: false }));
 const carol = env.authenticatedContext('carol').firestore();
-await check('settings: retired field removed while writing', setDoc(doc(carol, 'users/carol'), { show_photo: true, remember_progression: deleteField() }, { merge: true }), true);
+await check('settings: retired field removed while writing', setDoc(doc(carol, 'users/carol'), { discard_photo: true, remember_progression: deleteField() }, { merge: true }), true);
 await check("settings: bob can't read alice", getDoc(doc(bob, 'users/alice')), false);
+
+// Kept photos
+const photo = (db, id) => doc(db, 'users/alice/photos', id);
+const sealedPhoto = 'v1:' + Buffer.from('p'.repeat(450000)).toString('base64').slice(0, 600000);
+await check('photo for an existing session', setDoc(photo(alice, 's1'), { sealed: sealedPhoto, created_at: serverTimestamp() }), true);
+await check('photo for a missing session rejected', setDoc(photo(alice, 'nope'), { sealed: SEALED, created_at: serverTimestamp() }), false);
+await check('plain photo rejected', setDoc(photo(alice, 'old1'), { sealed: 'data:image/jpeg;base64,/9j/', created_at: serverTimestamp() }), false);
+await check('photo overwrite rejected', setDoc(photo(alice, 's1'), { sealed: SEALED, created_at: serverTimestamp() }), false);
+await check("bob can't read alice's photo", getDoc(photo(bob, 's1')), false);
+await check('alice deletes her photo', deleteDoc(photo(alice, 's1')), true);
 
 await env.cleanup();
 console.log(failures ? `${failures} FAILED` : 'all passed');

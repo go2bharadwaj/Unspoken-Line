@@ -14,7 +14,6 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  deleteDoc,
   deleteField,
   Firestore,
   DocumentData,
@@ -310,7 +309,11 @@ export async function markSession(
 
 export async function deleteSession(user: User | null, id: string): Promise<void> {
   if (user && db) {
-    await deleteDoc(doc(db, 'users', user.uid, 'sessions', id));
+    // The reading and its kept photo go together, in one atomic write
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'users', user.uid, 'sessions', id));
+    batch.delete(doc(db, 'users', user.uid, 'photos', id));
+    await batch.commit();
     return;
   }
   saveLocalSessions(getLocalSessions().filter((s) => s.id !== id));
@@ -318,16 +321,15 @@ export async function deleteSession(user: User | null, id: string): Promise<void
 
 export async function clearHistory(user: User | null): Promise<void> {
   if (user && db) {
-    const colRef = collection(db, 'users', user.uid, 'sessions');
-    const snap = await getDocs(colRef);
-    const docs = snap.docs;
-    const CHUNK_SIZE = 400;
-
-    for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
-      const batch = writeBatch(db);
-      const chunk = docs.slice(i, i + CHUNK_SIZE);
-      chunk.forEach((d) => batch.delete(d.ref));
-      await batch.commit();
+    // Photos first, so a failure part-way never leaves a photo behind without its reading
+    for (const name of ['photos', 'sessions']) {
+      const docs = (await getDocs(collection(db, 'users', user.uid, name))).docs;
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
+        const batch = writeBatch(db);
+        docs.slice(i, i + CHUNK_SIZE).forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
     }
     return;
   }
@@ -340,7 +342,7 @@ export async function clearHistory(user: User | null): Promise<void> {
   }
 }
 
-const LOCAL_SHOW_PHOTO_KEY = 'unspoken-line.show-photo.v1';
+const LOCAL_DISCARD_PHOTO_KEY = 'unspoken-line.discard-photo.v1';
 const LOCAL_PROFILE_KEY = 'unspoken-line.profile.v1';
 
 /** Sealed on the account: the age the person gave and the day they gave it, so it can age with them. */
@@ -350,8 +352,8 @@ interface Profile {
 }
 
 export interface Settings {
-  /** Show the photo just read above the reading (never stored either way). */
-  showPhoto: boolean;
+  /** Discard the photo after the reading (the default), or keep it, sealed, with the reading. */
+  discardPhoto: boolean;
   /** Age today, or null if they haven't given it. */
   age: number | null;
 }
@@ -380,33 +382,37 @@ export async function getSettings(user: User | null): Promise<Settings> {
     const [profileText] = isSealed(data.profile) ? await openValues([data.profile]) : [null];
     const profile = parseProfile(profileText);
     return {
-      showPhoto: data.show_photo !== false,
+      discardPhoto: data.discard_photo !== false,
       age: profile ? currentAge(profile) : null,
     };
   }
   try {
     const profile = parseProfile(localStorage.getItem(LOCAL_PROFILE_KEY));
     return {
-      showPhoto: localStorage.getItem(LOCAL_SHOW_PHOTO_KEY) !== 'off',
+      discardPhoto: localStorage.getItem(LOCAL_DISCARD_PHOTO_KEY) !== 'off',
       age: profile ? currentAge(profile) : null,
     };
   } catch {
-    return { showPhoto: true, age: null };
+    return { discardPhoto: true, age: null };
   }
 }
 
-// Merged into the account doc; also clears the retired progression switch so the doc matches firestore.rules
+// Merged into the account doc; also clears retired settings so the doc matches firestore.rules
 function writeSettings(user: User, fields: Record<string, unknown>): Promise<void> {
-  return setDoc(doc(db!, 'users', user.uid), { ...fields, remember_progression: deleteField() }, { merge: true });
+  return setDoc(
+    doc(db!, 'users', user.uid),
+    { ...fields, remember_progression: deleteField(), show_photo: deleteField() },
+    { merge: true }
+  );
 }
 
-export async function setShowPhoto(user: User | null, on: boolean): Promise<void> {
+export async function setDiscardPhoto(user: User | null, on: boolean): Promise<void> {
   if (user && db) {
-    await writeSettings(user, { show_photo: on });
+    await writeSettings(user, { discard_photo: on });
     return;
   }
   try {
-    localStorage.setItem(LOCAL_SHOW_PHOTO_KEY, on ? 'on' : 'off');
+    localStorage.setItem(LOCAL_DISCARD_PHOTO_KEY, on ? 'on' : 'off');
   } catch {
     // Storage disabled: the choice lasts until reload
   }
@@ -427,6 +433,21 @@ export async function setAge(user: User | null, age: number): Promise<void> {
   } catch {
     // Storage disabled: asked again next visit
   }
+}
+
+/** Keep a photo with its reading, sealed. Signed-in only: a guest's browser storage is too small for photos. */
+export async function savePhoto(user: User, sessionId: string, base64: string): Promise<void> {
+  const [sealed] = await sealValues([base64]);
+  await setDoc(doc(db!, 'users', user.uid, 'photos', sessionId), { sealed, created_at: serverTimestamp() });
+}
+
+/** The kept photo for a reading (base64 JPEG), or null if none was kept. */
+export async function loadPhoto(user: User | null, sessionId: string): Promise<string | null> {
+  if (!user || !db) return null;
+  const data = (await getDoc(doc(db, 'users', user.uid, 'photos', sessionId))).data();
+  if (!isSealed(data?.sealed)) return null;
+  const [base64] = await openValues([data.sealed]);
+  return base64;
 }
 
 function isSealed(v: unknown): v is string {
