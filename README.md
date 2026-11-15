@@ -42,6 +42,7 @@ cp backend/.env.example backend/.env && ./start_dev.sh
 | `GEMINI_API_KEY` | *(empty)* | Google GenAI API key for Gemini (`gemini-4-hydrogen`) vision perception. When omitted (local dev), deterministic stroke heuristics are used. When set and a call fails, the request returns RETRY_CAPTURE: no image gets a reading without Gemini's safety check. |
 | `GEMINI_MODEL` | `gemini-4-hydrogen` | Gemini model identifier used for multimodal sketch reflection. |
 | `GEMINI_SUMMARY_MODEL` | `gemini-3.8-flash` | Model for the background progression summary written after each reading. |
+| `DATA_ENCRYPTION_KEY` | *(empty)* | 32 random bytes, base64. The backend seals each user's readings, scores, notes, rating and age with AES-256-GCM (a per-user key derived from this one), so Firestore only holds ciphertext. Required for signed-in users to save history. **Back it up: losing it makes every saved reading unreadable.** |
 | `JEV_API_KEY` | *(empty)* | API key for calibrated Jev emotion scoring service. When omitted, deterministic calibration fallback is used. |
 | `JEV_API_URL` | *(empty)* | REST endpoint for the Jev service. |
 | `JEV_MODEL` | `jev-latest` | Model identifier for Jev service. |

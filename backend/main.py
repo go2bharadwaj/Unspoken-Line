@@ -13,6 +13,7 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
 import ratelimit
+import vault
 from ai import run_flash, run_jev, summarize_reading
 from gate import (
     ACTIVITIES,
@@ -37,6 +38,9 @@ from schemas import (
     HealthResponse,
     SummarizeReadingRequest,
     SummarizeReadingResponse,
+    VaultOpenResponse,
+    VaultRequest,
+    VaultSealResponse,
 )
 
 load_dotenv()
@@ -129,6 +133,7 @@ async def health_check() -> HealthResponse:
         status="ok",
         gemini_configured=bool(gemini_key),
         jev_configured=bool(jev_key and jev_url),
+        encryption_configured=vault.configured(),
     )
 
 
@@ -189,7 +194,7 @@ async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> Analyze
 
     # Step 4: Parallel multimodal perception with deterministic fallbacks
     flash_res_tuple, jev_res_tuple = await asyncio.gather(
-        run_flash(jpeg, telemetry, (base_scores, base_bullets), req.previous_summary),
+        run_flash(jpeg, telemetry, (base_scores, base_bullets), req.previous_summary, req.age),
         run_jev(jpeg_b64, telemetry, base_scores),
     )
     flash_res, flash_src = flash_res_tuple
@@ -340,3 +345,39 @@ async def summarize_reading_endpoint(req: SummarizeReadingRequest, request: Requ
         # Client keeps the previous notes; the next session still has S_n-1 to compare against
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Summary unavailable.")
     return SummarizeReadingResponse(summary=scrub_clinical(summary))
+
+
+async def _vault_uid(request: Request) -> str:
+    """The verified Firebase uid: values are sealed to it, so it must never come from the request body."""
+    if not FIREBASE_PROJECT_ID or not vault.configured():
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Encryption is not configured.")
+    auth = request.headers.get("authorization", "")
+    uid = await asyncio.to_thread(_verify_uid, auth[7:].strip()) if auth.lower().startswith("bearer ") else None
+    if not uid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in to load your history.")
+    reason = ratelimit.check(f"vault:uid:{uid}", ratelimit.VAULT_PER_USER_HOUR, daily=False)
+    if reason:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=reason)
+    return uid
+
+
+@app.post("/api/v1/vault/seal", response_model=VaultSealResponse)
+async def vault_seal(req: VaultRequest, request: Request) -> VaultSealResponse:
+    """Encrypts values for the signed-in user before the browser saves them to Firestore."""
+    uid = await _vault_uid(request)
+    return VaultSealResponse(values=[vault.seal(uid, v) for v in req.values])
+
+
+@app.post("/api/v1/vault/open", response_model=VaultOpenResponse)
+async def vault_open(req: VaultRequest, request: Request) -> VaultOpenResponse:
+    """Decrypts the signed-in user's values after the browser loads them from Firestore."""
+    uid = await _vault_uid(request)
+    opened: list[str | None] = []
+    for v in req.values:
+        try:
+            opened.append(vault.open_(uid, v))
+        except vault.VaultError:
+            opened.append(None)
+    if any(o is None for o in opened):
+        logger.warning("vault_open_failed", extra={"event": "vault_open_failed"})
+    return VaultOpenResponse(values=opened)
