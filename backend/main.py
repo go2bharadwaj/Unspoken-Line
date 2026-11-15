@@ -13,7 +13,7 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
 import ratelimit
-from ai import run_flash, run_jev
+from ai import run_flash, run_jev, summarize_reading
 from gate import (
     ACTIVITIES,
     CRISIS_MESSAGE,
@@ -35,6 +35,8 @@ from schemas import (
     AnalyzeSketchRequest,
     AnalyzeSketchResponse,
     HealthResponse,
+    SummarizeReadingRequest,
+    SummarizeReadingResponse,
 )
 
 load_dotenv()
@@ -51,6 +53,23 @@ def _verify_uid(token: str) -> str | None:
         return claims.get("user_id") or claims.get("sub")
     except Exception:
         return None
+
+
+async def _enforce_rate_limit(request: Request, bucket: str = "") -> None:
+    """Raise 429 if this caller is over their hourly limit. `bucket` keeps endpoints' counts separate."""
+    # Caddy sets X-Forwarded-For; rightmost entry is the one the proxy saw, so it can't be spoofed.
+    ip = request.headers.get("x-forwarded-for", "").split(",")[-1].strip() or (
+        request.client.host if request.client else "unknown"
+    )
+    # Signed-in users get their own bucket (safe on shared wifi); guests/invalid tokens fall back to IP.
+    auth = request.headers.get("authorization", "")
+    uid = None
+    if FIREBASE_PROJECT_ID and auth.lower().startswith("bearer "):
+        uid = await asyncio.to_thread(_verify_uid, auth[7:].strip())
+    key, limit = (f"uid:{uid}", ratelimit.PER_USER_HOUR) if uid else (f"ip:{ip}", ratelimit.PER_IP_HOUR)
+    reason = ratelimit.check(bucket + key, limit)
+    if reason:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=reason)
 
 
 class JsonEventFormatter(logging.Formatter):
@@ -120,19 +139,7 @@ async def health_check() -> HealthResponse:
 )
 async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> AnalyzeSketchResponse:
     """Performs RAM-only perceptual analysis of a timed physical sketch."""
-    # Caddy sets X-Forwarded-For; rightmost entry is the one the proxy saw, so it can't be spoofed.
-    ip = request.headers.get("x-forwarded-for", "").split(",")[-1].strip() or (
-        request.client.host if request.client else "unknown"
-    )
-    # Signed-in users get their own bucket (safe on shared wifi); guests/invalid tokens fall back to IP.
-    auth = request.headers.get("authorization", "")
-    uid = None
-    if FIREBASE_PROJECT_ID and auth.lower().startswith("bearer "):
-        uid = await asyncio.to_thread(_verify_uid, auth[7:].strip())
-    key, limit = (f"uid:{uid}", ratelimit.PER_USER_HOUR) if uid else (f"ip:{ip}", ratelimit.PER_IP_HOUR)
-    reason = ratelimit.check(key, limit)
-    if reason:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=reason)
+    await _enforce_rate_limit(request)
 
     # Step 1: Decode & validate image buffer
     try:
@@ -182,7 +189,7 @@ async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> Analyze
 
     # Step 4: Parallel multimodal perception with deterministic fallbacks
     flash_res_tuple, jev_res_tuple = await asyncio.gather(
-        run_flash(jpeg, telemetry, (base_scores, base_bullets)),
+        run_flash(jpeg, telemetry, (base_scores, base_bullets), req.previous_summary),
         run_jev(jpeg_b64, telemetry, base_scores),
     )
     flash_res, flash_src = flash_res_tuple
@@ -260,6 +267,9 @@ async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> Analyze
     raw_trend = trend_text(merged, req.user_baseline_scores, req.timer_duration_sec)
 
     clean_reflection = scrub_clinical(flash_res.visual_reflection_text)
+    clean_progression = (
+        scrub_clinical(flash_res.progression_reflection_text) if flash_res.progression_reflection_text else None
+    )
     clean_bullets = [scrub_clinical(b) for b in flash_res.stroke_evidence_bullets]
     clean_trend = scrub_clinical(raw_trend)
     activities = ACTIVITIES.get(prim, [])
@@ -281,6 +291,7 @@ async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> Analyze
         retry_or_safety_message=None,
         telemetry=telemetry,
         visual_reflection_text=clean_reflection,
+        progression_reflection_text=clean_progression,
         stroke_evidence_bullets=clean_bullets,
         flash_scores=flash_res.flash_scores,
         jev_scores=jev_res.scores,
@@ -291,3 +302,20 @@ async def analyze_sketch(req: AnalyzeSketchRequest, request: Request) -> Analyze
         recommended_activities=activities,
         analysis_sources=sources,
     )
+
+
+@app.post("/api/v1/summarize-reading", response_model=SummarizeReadingResponse)
+async def summarize_reading_endpoint(req: SummarizeReadingRequest, request: Request) -> SummarizeReadingResponse:
+    """Background step after a reading: T_n (+ S_n-1) -> S_n, the user's progression notes.
+    The client stores S_n with the session and sends it with the next analyze request."""
+    await _enforce_rate_limit(request, bucket="summary:")
+    summary = await summarize_reading(
+        req.reading_text,
+        req.progression_text,
+        req.previous_summary,
+        req.reading_date.isoformat(),
+    )
+    if summary is None:
+        # Client keeps the previous notes; the next session still has S_n-1 to compare against
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Summary unavailable.")
+    return SummarizeReadingResponse(summary=scrub_clinical(summary))

@@ -1,11 +1,23 @@
-import { AnalyzeSketchRequest, AnalyzeSketchResponse } from '../types';
+import {
+  AnalyzeSketchRequest,
+  AnalyzeSketchResponse,
+  SummarizeReadingRequest,
+} from '../types';
 import { getIdToken } from './firebase';
 
-export async function analyzeSketch(
-  req: AnalyzeSketchRequest
-): Promise<AnalyzeSketchResponse> {
+export function analyzeSketch(req: AnalyzeSketchRequest): Promise<AnalyzeSketchResponse> {
+  return postJson<AnalyzeSketchResponse>('/api/v1/analyze-sketch', req);
+}
+
+/** Background step after a reading; resolves to the new progression notes (S_n). */
+export async function summarizeReading(req: SummarizeReadingRequest): Promise<string> {
+  const { summary } = await postJson<{ summary: string }>('/api/v1/summarize-reading', req);
+  return summary;
+}
+
+async function postJson<T>(path: string, body: unknown): Promise<T> {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  const url = `${baseUrl}/api/v1/analyze-sketch`;
+  const url = `${baseUrl}${path}`;
 
   const token = await getIdToken();
   let response: Response;
@@ -16,7 +28,7 @@ export async function analyzeSketch(
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(req),
+      body: JSON.stringify(body),
     });
   } catch (err) {
     const errorMsg =
@@ -43,8 +55,7 @@ export async function analyzeSketch(
   }
 
   try {
-    const data = (await response.json()) as AnalyzeSketchResponse;
-    return data;
+    return (await response.json()) as T;
   } catch {
     throw new Error('Unable to parse the reflection response from the sanctuary service.');
   }

@@ -1,5 +1,10 @@
+from datetime import date
 from typing import Literal
 from pydantic import BaseModel, Field
+
+# Progression notes travel client -> server -> Gemini, so they are capped at every hop
+# (request validation here, output trimming in ai.py, and firestore.rules).
+SUMMARY_MAX_CHARS = 1500
 
 
 class EmotionScores(BaseModel):
@@ -15,6 +20,11 @@ class AnalyzeSketchRequest(BaseModel):
     mime_type: Literal["image/jpeg", "image/png", "image/webp"]
     timer_duration_sec: Literal[5, 10, 15, 30, 60]
     user_baseline_scores: EmotionScores | None = None
+    previous_summary: str | None = Field(
+        None,
+        max_length=SUMMARY_MAX_CHARS,
+        description="Latest progression notes for this user (S_n-1); omitted on a first session.",
+    )
 
 
 class Telemetry(BaseModel):
@@ -45,6 +55,7 @@ class AnalyzeSketchResponse(BaseModel):
     retry_or_safety_message: str | None = None
     telemetry: Telemetry | None = None
     visual_reflection_text: str | None = None
+    progression_reflection_text: str | None = None
     stroke_evidence_bullets: list[str] = Field(default_factory=list)
     flash_scores: EmotionScores | None = None
     jev_scores: EmotionScores | None = None
@@ -61,6 +72,13 @@ class FlashResult(BaseModel):
         ...,
         description="Free-form answer to: What does this drawing say about my current mental state?",
     )
+    progression_reflection_text: str | None = Field(
+        None,
+        description=(
+            "Only when PRIOR PROGRESSION NOTES are given: how the person has changed, combining this "
+            "drawing's reading with the notes. Null when there are no notes."
+        ),
+    )
     stroke_evidence_bullets: list[str]
     flash_scores: EmotionScores
     safety_flag: Literal[
@@ -76,6 +94,17 @@ class JevResult(BaseModel):
     scores: EmotionScores
     filter_flag: Literal["SAFE", "CRISIS_SELF_HARM", "NON_SKETCH_REJECTED", "LOW_CONFIDENCE"]
     confidence: float = Field(ge=0.0, le=1.0)
+
+
+class SummarizeReadingRequest(BaseModel):
+    reading_text: str = Field(..., min_length=1, max_length=8000, description="T_n: the reading of this drawing alone.")
+    progression_text: str | None = Field(None, max_length=8000, description="T_n's progression part, if any.")
+    previous_summary: str | None = Field(None, max_length=SUMMARY_MAX_CHARS, description="S_n-1, if any.")
+    reading_date: date = Field(..., description="Date the reading was generated (YYYY-MM-DD).")
+
+
+class SummarizeReadingResponse(BaseModel):
+    summary: str
 
 
 class HealthResponse(BaseModel):

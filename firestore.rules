@@ -21,9 +21,11 @@ service cloud.firestore {
         && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')));
 
       allow update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['calm_anchor', 'aura_hex'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['calm_anchor', 'aura_hex', 'summary'])
         && (!('calm_anchor' in request.resource.data) || request.resource.data.calm_anchor is bool)
-        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')));
+        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')))
+        // Progression notes (S_n); same 1500-char cap as the backend
+        && (!('summary' in request.resource.data) || (request.resource.data.summary is string && request.resource.data.summary.size() > 0 && request.resource.data.summary.size() <= 1500));
     }
 
     match /{document=**} {

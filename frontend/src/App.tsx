@@ -8,7 +8,7 @@ import {
   StoredSession,
   TimerDurationSec,
 } from "./types";
-import { analyzeSketch } from "./lib/api";
+import { analyzeSketch, summarizeReading } from "./lib/api";
 import {
   firebaseEnabled,
   signInWithGoogle,
@@ -189,6 +189,9 @@ export default function App() {
     setCaptureMessage(null);
 
     const baseline = computeBaseline(sessions);
+    // S_n-1: the newest progression notes. If the last summary failed, an older one still carries the history.
+    const previousSummary =
+      [...sessions].reverse().find((s) => s.summary)?.summary ?? null;
 
     try {
       const res = await analyzeSketch({
@@ -196,20 +199,40 @@ export default function App() {
         mime_type: "image/jpeg",
         timer_duration_sec: timerDurationSec,
         user_baseline_scores: baseline,
+        previous_summary: previousSummary,
       });
 
       if (res.safety_status === "SAFE") {
         let savedId = `local_${Date.now()}`;
+        let saved = false;
         if (res.merged_scores) {
           try {
             savedId = await saveSession(user, {
               timer_duration_sec: timerDurationSec,
               scores: res.merged_scores,
             });
+            saved = true;
             await refreshSessions(user);
           } catch {
             // Storage failure fallback
           }
+        }
+        if (saved && res.visual_reflection_text) {
+          // Background: T_n (+ S_n-1) -> S_n, stored on this session for next time. Never blocks the results.
+          summarizeReading({
+            reading_text: res.visual_reflection_text,
+            progression_text: res.progression_reflection_text,
+            previous_summary: previousSummary,
+            reading_date: new Date().toLocaleDateString("en-CA"), // YYYY-MM-DD, local
+          })
+            .then((summary) =>
+              markSession(user, savedId, { summary }).then(() =>
+                refreshSessions(user),
+              ),
+            )
+            .catch(() => {
+              // No new notes this time; the next session falls back to S_n-1
+            });
         }
         setCurrentSessionId(savedId);
         setAnalysisResult(res);
