@@ -25,20 +25,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "benchmark"))
 
 import httpx  # noqa: E402
-from eval_safety import LIVE_API, b64  # noqa: E402
+from eval_safety import LIVE_API, b64, post_sketch  # noqa: E402
 
 GOLDEN = ROOT / "benchmark/golden"
 
 
-def call(client: httpx.Client, api: str, path: Path) -> dict:
+def call(api: str, path: Path) -> dict:
     mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
-    body = {"image_base64": b64(path), "mime_type": mime, "timer_duration_sec": 15}
-    for _ in range(70):
-        resp = client.post(f"{api}/api/v1/analyze-sketch", json=body)
-        if resp.status_code != 429:
-            break
-        print("    rate limited, waiting 60s...", flush=True)
-        time.sleep(60)
+    resp = post_sketch(api, {"image_base64": b64(path), "mime_type": mime, "timer_duration_sec": 15})
     resp.raise_for_status()
     return resp.json()
 
@@ -80,6 +74,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Score the live API against the golden dataset")
     p.add_argument("--api", default=LIVE_API)
     p.add_argument("--set", choices=["eval", "redteam"], help="Run one set (default: both)")
+    p.add_argument("--tag", default="", help="Suffix for the results folder, e.g. before / after")
     a = p.parse_args()
     api = a.api.rstrip("/")
     csv_path = GOLDEN / "golden.csv"
@@ -92,26 +87,25 @@ def main() -> None:
         sys.exit(f"{api} has no Gemini key; use the live API.")
 
     rows = []
-    with httpx.Client(timeout=90) as client:
-        for i, case in enumerate(cases, 1):
-            try:
-                data = call(client, api, ROOT / case["image_path"])
-            except Exception as err:  # a crashed case counts as failed
-                data = {"safety_status": "ERROR", "retry_or_safety_message": str(err)[:200]}
-            status_ok, emotion_ok = judge(case, data)
-            passed = status_ok and emotion_ok is not False
-            rows.append({**case, "actual_status": data.get("safety_status"), "actual_emotion": data.get("primary_emotion_class") or "",
-                         "status_ok": status_ok, "emotion_ok": "" if emotion_ok is None else emotion_ok, "passed": passed,
-                         "scores": json.dumps(data["merged_scores"]) if data.get("merged_scores") else "",
-                         "reading": data.get("visual_reflection_text") or "", "message": data.get("retry_or_safety_message") or "",
-                         "human_ok": ""})
-            print(f"[{i}/{len(cases)}] {'PASS' if passed else 'FAIL'} {case['case_id']} expected {case['expected_status']} "
-                  f"{case['expected_emotion']} got {data.get('safety_status')} {data.get('primary_emotion_class') or ''}", flush=True)
+    for i, case in enumerate(cases, 1):
+        try:
+            data = call(api, ROOT / case["image_path"])
+        except Exception as err:  # a crashed case counts as failed
+            data = {"safety_status": "ERROR", "retry_or_safety_message": str(err)[:200]}
+        status_ok, emotion_ok = judge(case, data)
+        passed = status_ok and emotion_ok is not False
+        rows.append({**case, "actual_status": data.get("safety_status"), "actual_emotion": data.get("primary_emotion_class") or "",
+                     "status_ok": status_ok, "emotion_ok": "" if emotion_ok is None else emotion_ok, "passed": passed,
+                     "scores": json.dumps(data["merged_scores"]) if data.get("merged_scores") else "",
+                     "reading": data.get("visual_reflection_text") or "", "message": data.get("retry_or_safety_message") or "",
+                     "human_ok": ""})
+        print(f"[{i}/{len(cases)}] {'PASS' if passed else 'FAIL'} {case['case_id']} expected {case['expected_status']} "
+              f"{case['expected_emotion']} got {data.get('safety_status')} {data.get('primary_emotion_class') or ''}", flush=True)
 
     stamp = f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}"
     for set_name in sorted({r["set"] for r in rows}):
         rs = [r for r in rows if r["set"] == set_name]
-        out = ROOT / f"benchmark/results/golden_{set_name}"
+        out = ROOT / f"benchmark/results/golden_{set_name}" if not a.tag else ROOT / f"benchmark/results/golden_{set_name}_{a.tag}"
         out.mkdir(parents=True, exist_ok=True)
         with open(out / "results.csv", "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=list(rs[0]))

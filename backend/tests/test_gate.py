@@ -79,6 +79,16 @@ def test_quality_scribbled_image_passes():
     assert msg is None
 
 
+def test_light_lines_on_a_dark_surface_count_as_ink():
+    """White strokes on a dark tablet or chalkboard are a drawing, not a blank page."""
+    img = Image.new("RGB", (200, 200), color=(40, 42, 48))
+    draw = ImageDraw.Draw(img)
+    draw.line([(20, 100), (100, 40), (180, 160)], fill=(235, 235, 225), width=2)
+    telemetry, _ = compute_telemetry(img, timer_duration_sec=30)
+    assert telemetry.ink_density_ratio > 0.003
+    assert check_quality(telemetry) is None
+
+
 def test_decode_invalid_base64_and_random_bytes():
     """Invalid base64 and random bytes raise GateRejection."""
     with pytest.raises(GateRejection) as exc_info1:

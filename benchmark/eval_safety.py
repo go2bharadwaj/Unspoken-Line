@@ -59,21 +59,36 @@ def run_local(case: dict) -> tuple[str, str]:
     return ("RETRY_CAPTURE", msg) if msg else ("PASSED_GATE", "")
 
 
-def run_api(client: httpx.Client, api: str, case: dict) -> tuple[str, str]:
+def post_sketch(api: str, body: dict) -> httpx.Response:
+    """POST one sketch. Waits out the hourly per-IP limit and retries dropped connections on a fresh one."""
+    for attempt in range(80):
+        try:
+            with httpx.Client(timeout=90) as client:  # new connection each try: kept-alive ones go stale during waits
+                resp = client.post(f"{api}/api/v1/analyze-sketch", json=body)
+        except httpx.TransportError as err:
+            if attempt >= 4:
+                raise
+            print(f"    connection error ({err}), retrying...", flush=True)
+            time.sleep(3)
+            continue
+        if resp.status_code != 429:
+            return resp
+        print("    rate limited, waiting 60s...", flush=True)
+        time.sleep(60)
+    return resp
+
+
+def run_api(api: str, case: dict) -> tuple[str, str, int]:
     body = {
         "image_base64": b64(ROOT / case["image_path"]),
         "mime_type": "image/png",
         "timer_duration_sec": int(case["timer_duration_sec"]),
     }
-    for _ in range(70):  # the per-IP limit is hourly; wait it out instead of failing the run
-        resp = client.post(f"{api}/api/v1/analyze-sketch", json=body)
-        if resp.status_code != 429:
-            break
-        print("    rate limited, waiting 60s...", flush=True)
-        time.sleep(60)
+    resp = post_sketch(api, body)
     resp.raise_for_status()
     data = resp.json()
-    return data.get("safety_status") or "NONE", (data.get("retry_or_safety_message") or "")[:120]
+    ms = round(resp.elapsed.total_seconds() * 1000)  # the request itself, not time spent waiting out the rate limit
+    return data.get("safety_status") or "NONE", (data.get("retry_or_safety_message") or "")[:120], ms
 
 
 def main() -> None:
@@ -93,20 +108,19 @@ def main() -> None:
         sys.exit(f"{api} has no Gemini key, so the model cases cannot be evaluated. Use the live API.")
 
     rows = []
-    with httpx.Client(timeout=90) as client:
-        for i, case in enumerate(cases, 1):
-            local = case["expected"] in ("SCRUBBED", "RETRY_CAPTURE")
-            start = time.perf_counter()
-            try:
-                actual, detail = run_local(case) if local else run_api(client, api, case)
-            except Exception as err:  # a crashed case is a failed case, never a skipped one
-                actual, detail = "ERROR", str(err)[:120]
-            ms = round((time.perf_counter() - start) * 1000)
-            ok = actual == case["expected"]
-            rows.append({**{k: case[k] for k in ("case_id", "category", "description", "expected")},
-                         "actual": actual, "passed": ok, "ran_via": "local" if local else "api",
-                         "latency_ms": ms, "detail": detail})
-            print(f"[{i:3}/{len(cases)}] {'PASS' if ok else 'FAIL'} {case['case_id']:12} expected {case['expected']:15} got {actual}", flush=True)
+    for i, case in enumerate(cases, 1):
+        local = case["expected"] in ("SCRUBBED", "RETRY_CAPTURE")
+        start = time.perf_counter()
+        try:
+            actual, detail, ms = (*run_local(case), None) if local else run_api(api, case)
+        except Exception as err:  # a crashed case is a failed case, never a skipped one
+            actual, detail, ms = "ERROR", str(err)[:120], None
+        ms = ms if ms is not None else round((time.perf_counter() - start) * 1000)
+        ok = actual == case["expected"]
+        rows.append({**{k: case[k] for k in ("case_id", "category", "description", "expected")},
+                     "actual": actual, "passed": ok, "ran_via": "local" if local else "api",
+                     "latency_ms": ms, "detail": detail})
+        print(f"[{i:3}/{len(cases)}] {'PASS' if ok else 'FAIL'} {case['case_id']:12} expected {case['expected']:15} got {actual}", flush=True)
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)

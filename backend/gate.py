@@ -63,15 +63,18 @@ def clean_jpeg_bytes(img: Image.Image) -> bytes:
     return buf.getvalue()
 
 
+def ink_mask_of(gray: np.ndarray) -> np.ndarray:
+    """Marks that stand out from the page: darker ink on paper, or light lines on a dark tablet, chalkboard or card."""
+    return np.abs(gray - float(np.median(gray))) > 40.0
+
+
 def compute_telemetry(img: Image.Image, timer_duration_sec: int) -> tuple[Telemetry, np.ndarray]:
     """Computes grayscale brightness, contrast std dev, and ink density ratio."""
     gray = np.asarray(img.convert("L"), dtype=np.float32)
     mean_lum = float(round(float(gray.mean()), 1))
     contrast_std = float(round(float(gray.std()), 1))
 
-    # Ink threshold: pixels noticeably darker than the median background
-    threshold = float(np.median(gray)) - 40.0
-    ink_mask = gray < threshold
+    ink_mask = ink_mask_of(gray)
     ink_density_ratio = float(round(float(ink_mask.mean()), 3))
 
     telemetry = Telemetry(
@@ -107,8 +110,7 @@ def stroke_scores(
 ) -> tuple[EmotionScores, list[str]]:
     """Deterministic heuristics using NumPy stroke geometry and rate calculations."""
     if ink_mask is None:
-        threshold = float(np.median(gray)) - 40.0
-        ink_mask = gray < threshold
+        ink_mask = ink_mask_of(gray)
 
     total_pixels = gray.size
     ink_pixels = int(ink_mask.sum())

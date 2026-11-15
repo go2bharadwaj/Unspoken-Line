@@ -46,7 +46,7 @@ def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     img = ImageOps.exif_transpose(Image.open(a.image)).convert("RGB")  # keep the photo upright, then drop its metadata
-    img.thumbnail((1600, 1600))
+    img.thumbnail((1024, 1024))  # same size the app sends
     clean = Image.new("RGB", img.size)  # fresh image: no EXIF or GPS carried over
     clean.paste(img)
     clean.save(out, "JPEG", quality=90)
