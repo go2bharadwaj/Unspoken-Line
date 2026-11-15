@@ -1,49 +1,67 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Account settings: only whether progression notes are kept
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // A value sealed by the backend (backend/vault.py): "v1:" + base64. Its contents are only readable there.
+    function isSealed(v, maxSize) {
+      return v is string && v.size() <= maxSize && v.matches('^v1:[A-Za-z0-9+/]+=*$');
+    }
+
+    // Account settings: whether photos are discarded after reading, and the sealed profile (age)
     match /users/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['remember_progression'])
-        && request.resource.data.remember_progression is bool;
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['discard_photo', 'profile'])
+        && (!('discard_photo' in request.resource.data) || request.resource.data.discard_photo is bool)
+        && (!('profile' in request.resource.data) || isSealed(request.resource.data.profile, 1000));
     }
 
     match /users/{uid}/sessions/{sessionId} {
-      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if isOwner(uid);
 
-      allow create: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['created_at', 'timer_duration_sec', 'scores', 'calm_anchor', 'aura_hex',
-             'reading_text', 'progression_text', 'trend_text', 'evidence', 'primary_class', 'source'])
-        && request.resource.data.keys().hasAll(['created_at', 'timer_duration_sec', 'scores'])
-        && request.resource.data.timer_duration_sec in [5, 10, 15, 30, 60]
+      // Everything personal (scores, reading, evidence, class) is one sealed value; only when, how long and
+      // which model answered stay readable. Photos are never stored.
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['created_at', 'timer_duration_sec', 'sealed', 'source', 'calm_anchor', 'aura_hex'])
+        && request.resource.data.keys().hasAll(['created_at', 'timer_duration_sec', 'sealed'])
         && request.resource.data.created_at == request.time
-        && request.resource.data.scores is map
-        && request.resource.data.scores.keys().hasOnly(['stress', 'anxiety', 'mental_fatigue', 'calm_flow', 'radiant_joy'])
-        && request.resource.data.scores.keys().hasAll(['stress', 'anxiety', 'mental_fatigue', 'calm_flow', 'radiant_joy'])
-        && request.resource.data.scores.stress is number && request.resource.data.scores.stress >= 0 && request.resource.data.scores.stress <= 1
-        && request.resource.data.scores.anxiety is number && request.resource.data.scores.anxiety >= 0 && request.resource.data.scores.anxiety <= 1
-        && request.resource.data.scores.mental_fatigue is number && request.resource.data.scores.mental_fatigue >= 0 && request.resource.data.scores.mental_fatigue <= 1
-        && request.resource.data.scores.calm_flow is number && request.resource.data.scores.calm_flow >= 0 && request.resource.data.scores.calm_flow <= 1
-        && request.resource.data.scores.radiant_joy is number && request.resource.data.scores.radiant_joy >= 0 && request.resource.data.scores.radiant_joy <= 1
+        && request.resource.data.timer_duration_sec in [5, 10, 15, 30, 60]
+        && isSealed(request.resource.data.sealed, 200000)
+        && (!('source' in request.resource.data) || request.resource.data.source in ['gemini', 'fallback'])
         && (!('calm_anchor' in request.resource.data) || request.resource.data.calm_anchor is bool)
-        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')))
-        // The reading as shown, so it can be reopened from history (photos are never stored)
-        && (!('reading_text' in request.resource.data) || (request.resource.data.reading_text is string && request.resource.data.reading_text.size() <= 20000))
-        && (!('progression_text' in request.resource.data) || (request.resource.data.progression_text is string && request.resource.data.progression_text.size() <= 20000))
-        && (!('trend_text' in request.resource.data) || (request.resource.data.trend_text is string && request.resource.data.trend_text.size() <= 2000))
-        && (!('evidence' in request.resource.data) || (request.resource.data.evidence is list && request.resource.data.evidence.size() <= 10))
-        && (!('primary_class' in request.resource.data) || request.resource.data.primary_class in ['Stress', 'Anxiety', 'Mental Fatigue', 'Calm Flow', 'Radiant Joy'])
-        && (!('source' in request.resource.data) || request.resource.data.source in ['gemini', 'fallback']);
+        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')));
 
-      allow update: if request.auth != null && request.auth.uid == uid
+      // After a reading: activity marks, sealed progression notes (S_n) and the sealed accuracy rating
+      allow update: if isOwner(uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['calm_anchor', 'aura_hex', 'summary', 'rating'])
-        && (!('calm_anchor' in request.resource.data) || request.resource.data.calm_anchor is bool)
-        && (!('aura_hex' in request.resource.data) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')))
-        // Progression notes (S_n); same 1500-char cap as the backend
-        && (!('summary' in request.resource.data) || (request.resource.data.summary is string && request.resource.data.summary.size() > 0 && request.resource.data.summary.size() <= 1500))
-        // How accurate the person found the reading: 1-10, with no 7
-        && (!('rating' in request.resource.data) || (request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 10 && request.resource.data.rating != 7));
+        && (!('calm_anchor' in request.resource.data.diff(resource.data).affectedKeys()) || request.resource.data.calm_anchor is bool)
+        && (!('aura_hex' in request.resource.data.diff(resource.data).affectedKeys()) || (request.resource.data.aura_hex is string && request.resource.data.aura_hex.matches('^#[0-9A-Fa-f]{6}$')))
+        && (!('summary' in request.resource.data.diff(resource.data).affectedKeys()) || isSealed(request.resource.data.summary, 8000))
+        && (!('rating' in request.resource.data.diff(resource.data).affectedKeys()) || isSealed(request.resource.data.rating, 100));
+
+      // One time, for a session saved before encryption: seal it and remove the plain copies in the same write
+      allow update: if isOwner(uid)
+        && !('sealed' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sealed', 'summary', 'rating',
+             'scores', 'primary_class', 'reading_text', 'progression_text', 'trend_text', 'evidence'])
+        && isSealed(request.resource.data.sealed, 200000)
+        && !request.resource.data.keys().hasAny(['scores', 'primary_class', 'reading_text', 'progression_text', 'trend_text', 'evidence'])
+        && (!('summary' in request.resource.data) || isSealed(request.resource.data.summary, 8000))
+        && (!('rating' in request.resource.data) || isSealed(request.resource.data.rating, 100));
+    }
+
+    // A kept photo, sealed, one per session (same id). Only for a session that exists; written once.
+    // The app deletes it together with its session, and with Clear My History.
+    match /users/{uid}/photos/{sessionId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && exists(/databases/$(database)/documents/users/$(uid)/sessions/$(sessionId))
+        && request.resource.data.keys().hasOnly(['sealed', 'created_at'])
+        && request.resource.data.created_at == request.time
+        && isSealed(request.resource.data.sealed, 700000);
     }
 
     match /{document=**} {

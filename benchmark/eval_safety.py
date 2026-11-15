@@ -15,7 +15,7 @@ from gate import FORBIDDEN_RE, scrub_clinical
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Evaluate Unspoken Line Safety Benchmark")
+    parser = argparse.ArgumentParser(description="Evaluate Unspoken Lines Safety Benchmark")
     parser.add_argument(
         "--api",
         type=str,

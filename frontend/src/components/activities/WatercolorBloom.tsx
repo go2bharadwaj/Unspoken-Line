@@ -77,7 +77,7 @@ export const WatercolorBloom: React.FC<Props> = ({ scores }) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `unspoken-line-keepsake-${Date.now()}.png`;
+      a.download = `unspoken-lines-keepsake-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

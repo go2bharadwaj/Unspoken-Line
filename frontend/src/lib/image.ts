@@ -1,6 +1,4 @@
-export async function processImageFile(
-  file: File | Blob
-): Promise<{ base64: string; mime_type: 'image/jpeg' }> {
+export async function processImageFile(file: File | Blob): Promise<{ base64: string; mime_type: 'image/jpeg' }> {
   let sourceWidth = 0;
   let sourceHeight = 0;
   let bitmap: ImageBitmap | null = null;
@@ -76,4 +74,31 @@ export async function processImageFile(
       URL.revokeObjectURL(objectUrlToRevoke);
     }
   }
+}
+
+/** Largest photo kept in history (base64 chars); sealed it stays well under Firestore's 1 MiB field limit. */
+export const PHOTO_MAX_BASE64 = 400_000;
+
+/** Re-encode a JPEG smaller until it fits PHOTO_MAX_BASE64, for keeping in history. */
+export async function shrinkForStorage(base64: string): Promise<string> {
+  if (base64.length <= PHOTO_MAX_BASE64) return base64;
+  const img = new Image();
+  img.src = `data:image/jpeg;base64,${base64}`;
+  await img.decode();
+  for (const [maxDim, quality] of [
+    [1024, 0.7],
+    [900, 0.6],
+    [768, 0.55],
+    [640, 0.5],
+    [512, 0.45],
+  ] as const) {
+    const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.naturalWidth * scale);
+    canvas.height = Math.round(img.naturalHeight * scale);
+    canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const out = canvas.toDataURL('image/jpeg', quality).split(',')[1];
+    if (out.length <= PHOTO_MAX_BASE64) return out;
+  }
+  throw new Error('Photo too large to keep');
 }

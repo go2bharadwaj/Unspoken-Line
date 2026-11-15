@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # Progression notes travel client -> server -> Gemini, so they are capped at every hop
 # (request validation here, output trimming in ai.py, and firestore.rules).
@@ -25,6 +25,7 @@ class AnalyzeSketchRequest(BaseModel):
         max_length=SUMMARY_MAX_CHARS,
         description="Latest progression notes for this user (S_n-1); omitted on a first session.",
     )
+    age: int | None = Field(None, ge=13, le=120, description="The person's age in years, if they gave it.")
 
 
 class Telemetry(BaseModel):
@@ -123,7 +124,34 @@ class SummarizeReadingResponse(BaseModel):
     summary: str
 
 
+# Sized for one user's whole history in a single call (listSessions keeps the newest 60 sessions),
+# or one saved photo (the client shrinks photos to PHOTO_MAX_BASE64 = 400k chars before sealing)
+VAULT_MAX_VALUE_CHARS = 600_000
+VAULT_MAX_TOTAL_CHARS = 1_500_000
+
+
+class VaultRequest(BaseModel):
+    values: list[str] = Field(..., max_length=500)
+
+    @field_validator("values")
+    @classmethod
+    def _bounded(cls, values: list[str]) -> list[str]:
+        if any(len(v) > VAULT_MAX_VALUE_CHARS for v in values) or sum(map(len, values)) > VAULT_MAX_TOTAL_CHARS:
+            raise ValueError("values too long")
+        return values
+
+
+class VaultSealResponse(BaseModel):
+    values: list[str]
+
+
+class VaultOpenResponse(BaseModel):
+    # None where a value couldn't be opened (tampered, or not this user's), so one bad value doesn't hide the rest
+    values: list[str | None]
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
     gemini_configured: bool
     jev_configured: bool
+    encryption_configured: bool

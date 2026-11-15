@@ -19,8 +19,11 @@ import {
   markSession,
   clearHistory,
   deleteSession,
-  getRememberProgression,
-  setRememberProgression,
+  getSettings,
+  setAge,
+  setDiscardPhoto,
+  savePhoto,
+  loadPhoto,
 } from "./lib/firebase";
 import { DrawingTimerRitual } from "./components/DrawingTimerRitual";
 import { PhotoCaptureCard } from "./components/PhotoCaptureCard";
@@ -28,10 +31,13 @@ import { AnalysisResultsView } from "./components/AnalysisResultsView";
 import { HistorySidebar, HISTORY_PANEL_ID } from "./components/HistorySidebar";
 import { sessionToResult } from "./lib/history";
 import { newerVersionDeployed, reloadOnceFor } from "./lib/freshness";
+import { shrinkForStorage } from "./lib/image";
+import { isAdmin } from "./lib/admin";
 import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
 import { PrivacyBadge } from "./components/PrivacyBadge";
 import { AboutCreators } from "./components/AboutCreators";
+import { AgeGate } from "./components/AgeGate";
 import { InstallApp } from "./components/InstallApp";
 import { version } from "../package.json";
 import { CrisisSupportView } from "./components/CrisisSupportView";
@@ -84,14 +90,19 @@ export default function App() {
   const [resultIsFresh, setResultIsFresh] = useState<boolean>(false);
   // A newer deploy than the one this tab is running (path of its bundle), found when the tab returns
   const [newVersion, setNewVersion] = useState<string | null>(null);
-  // The photo behind the reading just made; memory only, so past readings have none
+  // The photo shown above the open reading: the one just taken (always shown), or one kept with a past reading
   const [sketchPhoto, setSketchPhoto] = useState<{
     sessionId: string;
     url: string;
+    kept: boolean;
   } | null>(null);
-  // Progression notes (S_n): written after each reading and sent with the next, unless turned off
-  const [rememberProgression, setRememberProgressionState] =
-    useState<boolean>(true);
+  // Discard the photo after reading (the default), or keep it, sealed, with the reading
+  const [discardPhoto, setDiscardPhotoState] = useState<boolean>(true);
+  // Admin accounts evaluate readings: no personalization, every reading as if from a new person
+  // null until checked, so the age question never flashes up for an admin
+  const [adminMode, setAdminMode] = useState<boolean | null>(null);
+  // The person's age: undefined while loading or if it couldn't be read, null if never given
+  const [age, setAgeState] = useState<number | null | undefined>(undefined);
 
   useEffect(() => {
     const check = async () => {
@@ -117,10 +128,16 @@ export default function App() {
     const unsub = onUserChanged((currentUser) => {
       setUser(currentUser);
       refreshSessions(currentUser);
-      getRememberProgression(currentUser)
-        .then(setRememberProgressionState)
-        // Can't tell what they chose, so don't send or write notes this time
-        .catch(() => setRememberProgressionState(false));
+      setAgeState(undefined);
+      getSettings(currentUser)
+        .then((s) => {
+          setDiscardPhotoState(s.discardPhoto);
+          setAgeState(s.age);
+        })
+        // Can't tell what they chose, so take the private option; readings go without an age
+        .catch(() => setDiscardPhotoState(true));
+      setAdminMode(null);
+      isAdmin(currentUser).then(setAdminMode, () => setAdminMode(false));
     });
     return () => unsub();
   }, []);
@@ -252,13 +269,13 @@ export default function App() {
     setView("ritual");
   };
 
-  const handleRememberChange = async (on: boolean) => {
-    const before = rememberProgression;
-    setRememberProgressionState(on);
+  const handleDiscardPhotoChange = async (on: boolean) => {
+    const before = discardPhoto;
+    setDiscardPhotoState(on);
     try {
-      await setRememberProgression(user, on);
+      await setDiscardPhoto(user, on);
     } catch {
-      setRememberProgressionState(before); // not saved, so show what still applies
+      setDiscardPhotoState(before); // not saved, so show what still applies
     }
   };
 
@@ -280,11 +297,13 @@ export default function App() {
     setView("analyzing");
     setCaptureMessage(null);
 
-    const baseline = computeBaseline(sessions);
+    // Checked here too, not only from state, so a reading can never start before the check finished
+    const evaluating = await isAdmin(user).catch(() => false);
+    const baseline = evaluating ? null : computeBaseline(sessions);
     // S_n-1: the newest progression notes. If the last summary failed, an older one still carries the history.
-    const previousSummary = rememberProgression
-      ? ([...sessions].reverse().find((s) => s.summary)?.summary ?? null)
-      : null;
+    const previousSummary = evaluating
+      ? null
+      : ([...sessions].reverse().find((s) => s.summary)?.summary ?? null);
 
     try {
       const res = await analyzeSketch({
@@ -293,6 +312,7 @@ export default function App() {
         timer_duration_sec: timerDurationSec,
         user_baseline_scores: baseline,
         previous_summary: previousSummary,
+        age: evaluating ? null : (age ?? null),
       });
 
       if (res.safety_status === "SAFE") {
@@ -329,7 +349,7 @@ export default function App() {
         // Only a real Gemini reading of a drawing becomes notes; the backend has already stopped non-drawings
         if (
           saved &&
-          rememberProgression &&
+          !evaluating &&
           res.visual_reflection_text &&
           res.analysis_sources?.flash === "gemini"
         ) {
@@ -350,10 +370,23 @@ export default function App() {
             });
         }
         setCurrentSessionId(savedId);
+        // Always shown on the first view of a reading; kept afterwards only if they turned discarding off
+        const keep = saved && Boolean(user) && !discardPhoto;
         setSketchPhoto({
           sessionId: savedId,
           url: `data:image/jpeg;base64,${base64}`,
+          kept: keep,
         });
+        if (keep && user) {
+          shrinkForStorage(base64)
+            .then((small) => savePhoto(user, savedId, small))
+            .catch(() =>
+              // Not kept after all: say so under the photo instead of promising it's saved
+              setSketchPhoto((p) =>
+                p?.sessionId === savedId ? { ...p, kept: false } : p,
+              ),
+            );
+        }
         setAnalysisResult(res);
         setResultIsFresh(true);
         startTransition(() => {
@@ -408,6 +441,19 @@ export default function App() {
   };
 
   const showPastReading = (session: StoredSession) => {
+    // A photo kept with this reading loads after the text; none if it was discarded
+    setSketchPhoto(null);
+    loadPhoto(user, session.id)
+      .then(
+        (photo) =>
+          photo &&
+          setSketchPhoto({
+            sessionId: session.id,
+            url: `data:image/jpeg;base64,${photo}`,
+            kept: true,
+          }),
+      )
+      .catch(() => {});
     setAnalysisResult(sessionToResult(session));
     setResultIsFresh(false);
     setCurrentSessionId(session.id);
@@ -509,6 +555,14 @@ export default function App() {
             {firebaseEnabled ? (
               user ? (
                 <div className="flex items-center gap-3">
+                  {adminMode && (
+                    <span
+                      title="Admin: readings use no history, and your ratings are the human eval"
+                      className="px-2.5 py-1 rounded-full bg-sunlitAmber/30 border border-sunlitAmber/60 text-[11px] text-espressoInk tracking-wide"
+                    >
+                      Eval mode
+                    </span>
+                  )}
                   <span className="text-xs text-warmUmber hidden sm:inline">
                     {user.displayName || user.email || "Sanctuary Member"}
                   </span>
@@ -638,12 +692,11 @@ export default function App() {
                 {/* Privacy Badge */}
                 <div className="w-full pb-6">
                   {/* Notes belong to an account; without Firebase (local dev) the guest keeps them locally */}
+                  {/* Keeping photos needs an account (sealed in Firestore), so guests don't get the switch */}
                   <PrivacyBadge
-                    remember={rememberProgression}
-                    onRememberChange={
-                      user || !firebaseEnabled
-                        ? handleRememberChange
-                        : undefined
+                    discardPhoto={discardPhoto}
+                    onDiscardPhotoChange={
+                      user ? handleDiscardPhotoChange : undefined
                     }
                   />
                 </div>
@@ -657,40 +710,42 @@ export default function App() {
                     {/* Progression History Chart */}
                     <ProgressionChart sessions={sessions} />
 
-                    {/* Clear History Inline Confirmation */}
-                    <div className="my-8">
-                      {confirmingClear ? (
-                        <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
-                          <span className="text-xs text-espressoInk">
-                            Clear all stored sessions? This cannot be undone.
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={handleClearHistory}
-                              className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
-                            >
-                              Yes, clear history
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmingClear(false)}
-                              className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
-                            >
-                              Cancel
-                            </button>
+                    {/* Clear History Inline Confirmation; admins keep their sessions as the human eval record */}
+                    {adminMode === false && (
+                      <div className="my-8">
+                        {confirmingClear ? (
+                          <div className="p-4 rounded-2xl bg-blushClay/10 border border-blushClay/30 flex flex-col sm:flex-row items-center gap-3">
+                            <span className="text-xs text-espressoInk">
+                              Clear all stored sessions? This cannot be undone.
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleClearHistory}
+                                className="px-3 py-1 rounded-full bg-blushClay text-canvasPaper text-xs font-medium hover:bg-blushClay/90 cursor-pointer"
+                              >
+                                Yes, clear history
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingClear(false)}
+                                className="px-3 py-1 rounded-full border border-borderHairline text-warmUmber text-xs hover:text-espressoInk cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingClear(true)}
-                          className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
-                        >
-                          Clear My History
-                        </button>
-                      )}
-                    </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingClear(true)}
+                            className="text-xs text-warmUmber/70 hover:text-warmUmber underline cursor-pointer"
+                          >
+                            Clear My History
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -795,9 +850,9 @@ export default function App() {
                 onOpenActivity={handleOpenActivity}
                 onDone={handleDoneResults}
                 streamText={resultIsFresh}
-                photoUrl={
+                photo={
                   sketchPhoto?.sessionId === currentSessionId
-                    ? sketchPhoto.url
+                    ? sketchPhoto
                     : undefined
                 }
                 rating={currentSession?.rating}
@@ -873,6 +928,17 @@ export default function App() {
             </button>
           </span>
         </div>
+      )}
+
+      {/* Asked once after sign-in; admins evaluate as an unknown person, so they skip it */}
+      {(user || !firebaseEnabled) && adminMode === false && age === null && (
+        <AgeGate
+          onSave={async (a) => {
+            await setAge(user, a);
+            setAgeState(a);
+          }}
+          onSignOut={user ? handleSignOut : undefined}
+        />
       )}
 
       <HistorySidebar

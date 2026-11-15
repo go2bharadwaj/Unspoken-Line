@@ -16,8 +16,8 @@ interface Props {
   onDone: () => void;
   /** A reading that was just generated streams in; one reopened from history shows at once */
   streamText?: boolean;
-  /** The photo just analyzed, held only in this tab's memory; past readings have none */
-  photoUrl?: string;
+  /** The photo behind this reading: always the one just taken, or one kept with a past reading */
+  photo?: { url: string; kept: boolean };
   /** This reading's accuracy rating, if given */
   rating?: number;
   /** Absent when the session wasn't saved, so there is nothing to attach a rating to */
@@ -41,7 +41,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
   onOpenActivity,
   onDone,
   streamText = false,
-  photoUrl,
+  photo,
   rating,
   onRate,
 }) => {
@@ -83,22 +83,37 @@ export const AnalysisResultsView: React.FC<Props> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 flex flex-col gap-6 text-left">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         {/* The practices sit below a long reading, so offer a way straight to them */}
         <button
           type="button"
           onClick={() =>
             document.getElementById('practices')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-turmericMist/50 border border-peachTerracotta/40 text-xs font-medium text-espressoInk hover:bg-turmericMist/80 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 whitespace-nowrap rounded-full bg-turmericMist/50 border border-peachTerracotta/40 text-xs font-medium text-espressoInk hover:bg-turmericMist/80 transition-colors cursor-pointer"
         >
           <PlayIcon className="w-3 h-3" />
           Try a practice
         </button>
+        {/* Once rated, the rating sits up here too; tapping it goes back to the scale to change it */}
+        {rating && (
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById('rating')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+            aria-label={`Rated ${rating} out of 10. Change rating`}
+            className="ml-auto inline-flex items-center gap-1 px-2.5 py-1.5 whitespace-nowrap rounded-full border border-borderHairline text-xs text-espressoInk hover:bg-turmericMist/30 transition-colors cursor-pointer"
+          >
+            {/* "Rated" drops on the narrowest phones so the row still fits */}
+            <span className="hidden min-[380px]:inline">Rated</span>
+            <span className="font-medium">{rating}/10</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={onDone}
-          className="text-xs text-warmUmber hover:text-espressoInk underline cursor-pointer"
+          className="text-xs whitespace-nowrap text-warmUmber hover:text-espressoInk underline cursor-pointer"
         >
           Return to Sanctuary
         </button>
@@ -110,15 +125,17 @@ export const AnalysisResultsView: React.FC<Props> = ({
         </p>
       )}
 
-      {photoUrl && (
+      {photo && (
         <figure className="rounded-3xl border border-borderHairline bg-turmericMist/15 p-3 flex flex-col items-center gap-2">
           <img
-            src={photoUrl}
+            src={photo.url}
             alt="The drawing you just photographed"
             className="w-full max-h-72 sm:max-h-96 object-contain rounded-2xl"
           />
           <figcaption className="text-[11px] text-warmUmber">
-            Your drawing · shown only on this screen, never saved
+            {photo.kept
+              ? 'Your drawing · kept, encrypted, with this reading'
+              : 'Your drawing · shown only on this screen, never saved'}
           </figcaption>
         </figure>
       )}
@@ -343,6 +360,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
       {/* Accuracy rating: quiet, at the bottom */}
       {onRate && (
         <section
+          id="rating"
           aria-labelledby="rating-label"
           className="flex flex-col items-center gap-2 text-center"
         >
