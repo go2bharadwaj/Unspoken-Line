@@ -23,7 +23,7 @@ Viewers: [eval.md](eval.md) and [redteam.md](redteam.md) show each image beside 
 
 ## Run it locally, several times, or with an older prompt
 
-`benchmark/eval_local.py` runs the same golden cases through the backend pipeline on your machine (no HTTP, no rate limit). It needs `GEMINI_API_KEY` in `backend/.env`.
+`benchmark/eval_local.py` runs these golden photos (tagged `hand-drawn`) and the generated cases in `benchmark/cases/` (tagged `synthetic`), 215 in all, through the backend pipeline on your machine (no HTTP, no rate limit). `--source hand-drawn` or `--source synthetic` runs one group. It needs `GEMINI_API_KEY` in `backend/.env`.
 
 ```bash
 python benchmark/eval_local.py --tag baseline --runs 1 --save-baseline    # capture one run as golden/baseline.json
