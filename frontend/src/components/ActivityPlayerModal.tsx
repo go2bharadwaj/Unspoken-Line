@@ -20,6 +20,7 @@ import { WatercolorBloom } from './activities/WatercolorBloom';
 import { RadialBloom } from './activities/RadialBloom';
 import { PackActivity } from './activities/PackActivity';
 import { formatDuration } from '../lib/activities';
+import { PACK_COMPONENTS } from './activities/pack';
 
 interface ActivityComponentProps {
   sessionId: string;
@@ -59,6 +60,9 @@ const ACTIVITY_COMPONENTS: Record<
   OFFSCREEN_CARD: PackActivity,
 };
 
+// Writing, drawing and offscreen practices end when the person says so, never on a timer.
+const KEEP_OPEN = new Set<InteractionType>(['TEXT_PROMPT', 'CHECKLIST', 'OFFSCREEN_CARD', 'DRAWING_CANVAS']);
+
 interface Props {
   activity: Activity;
   sessionId: string;
@@ -90,16 +94,20 @@ export const ActivityPlayerModal: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  const keepOpen = KEEP_OPEN.has(activity.interaction_type);
+
   // Duration timer: closes with a chime at the end of duration_sec
   useEffect(() => {
+    if (keepOpen) return;
     const timer = setTimeout(() => {
       playChime({ fundamental: 196, gain: 0.35 });
       onClose();
     }, activity.duration_sec * 1000);
 
     return () => clearTimeout(timer);
-  }, [activity.duration_sec, onClose]);
+  }, [activity.duration_sec, keepOpen, onClose]);
 
+  const Custom = activity.pack_id ? PACK_COMPONENTS[activity.pack_id] : undefined;
   const Component = ACTIVITY_COMPONENTS[activity.interaction_type];
 
   return (
@@ -131,22 +139,28 @@ export const ActivityPlayerModal: React.FC<Props> = ({
         </button>
       </div>
 
+      {!keepOpen && (
+        <>
       {/* Gentle progress line across the sheet (no ticking digits) */}
-      <div className="w-full bg-borderHairline/40 h-0.5 relative overflow-hidden">
-        <motion.div
-          className="h-full bg-peachTerracotta"
-          initial={{ width: '0%' }}
-          animate={{ width: '100%' }}
-          transition={{
-            duration: shouldReduceMotion ? 0 : activity.duration_sec,
-            ease: 'linear',
-          }}
-        />
-      </div>
+          <div className="w-full bg-borderHairline/40 h-0.5 relative overflow-hidden">
+            <motion.div
+              className="h-full bg-peachTerracotta"
+              initial={{ width: '0%' }}
+              animate={{ width: '100%' }}
+              transition={{
+                duration: shouldReduceMotion ? 0 : activity.duration_sec,
+                ease: 'linear',
+              }}
+            />
+          </div>
+        </>
+      )}
 
       {/* Main Activity Area */}
       <div className="flex-1 flex items-center justify-center p-4">
-        {Component ? (
+        {Custom ? (
+          <Custom activity={activity} durationSec={activity.duration_sec} onClose={onClose} />
+        ) : Component ? (
           <Component
             sessionId={sessionId}
             scores={scores}
@@ -163,7 +177,9 @@ export const ActivityPlayerModal: React.FC<Props> = ({
       {/* Bottom spacer for balance */}
       <div className="w-full p-4 text-center">
         <p className="text-xs text-warmUmber/60">
-          Takes {formatDuration(activity.duration_sec)} · Closes gently with a singing bowl
+          {keepOpen
+            ? 'Take all the time you need'
+            : `Takes ${formatDuration(activity.duration_sec)} · Closes gently with a singing bowl`}
         </p>
       </div>
     </div>

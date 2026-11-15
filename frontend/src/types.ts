@@ -62,6 +62,7 @@ export interface Activity {
   duration_sec: number;
   interaction_type: InteractionType;
   /** Evidence-pack activities only. */
+  pack_id?: string;
   steps?: string[];
   pacer?: { inhale_s: number; second_inhale_s?: number; hold_s: number; exhale_s: number };
   grade?: 'A' | 'B' | 'C';

@@ -2,6 +2,7 @@
   "Stress": [
     {
       "id": "stress_slow_breathing",
+      "pack_id": "slow_breathing",
       "title": "Slow breathing",
       "subtitle": "Breathe in for 4, out for 6",
       "duration_sec": 90,
@@ -23,6 +24,7 @@
     },
     {
       "id": "stress_progressive_muscle_relaxation",
+      "pack_id": "progressive_muscle_relaxation",
       "title": "Tense and release",
       "subtitle": "Let go of tension, one area at a time",
       "duration_sec": 90,
@@ -39,6 +41,7 @@
     },
     {
       "id": "stress_music_listening_calming",
+      "pack_id": "music_listening_calming",
       "title": "Calm music break",
       "subtitle": "Five minutes of music you find soothing",
       "duration_sec": 90,
@@ -54,6 +57,7 @@
     },
     {
       "id": "stress_cyclic_sighing",
+      "pack_id": "cyclic_sighing",
       "title": "Physiological sigh",
       "subtitle": "Double inhale, long slow exhale",
       "duration_sec": 90,
@@ -76,6 +80,7 @@
     },
     {
       "id": "stress_third_person_self_talk",
+      "pack_id": "third_person_self_talk",
       "title": "Talk to yourself like a friend",
       "subtitle": "Use your own name to get some distance",
       "duration_sec": 90,
@@ -91,6 +96,7 @@
     },
     {
       "id": "stress_self_compassion_exercise",
+      "pack_id": "self_compassion_exercise",
       "title": "Kind words to yourself",
       "subtitle": "A short self-compassion pause",
       "duration_sec": 90,
@@ -106,6 +112,7 @@
     },
     {
       "id": "stress_write_plan_todo",
+      "pack_id": "write_plan_todo",
       "title": "Get it out of your head",
       "subtitle": "List what's on your plate and the very next step",
       "duration_sec": 90,
@@ -121,6 +128,7 @@
     },
     {
       "id": "stress_guided_imagery",
+      "pack_id": "guided_imagery",
       "title": "Picture a calm place",
       "subtitle": "A short guided visualisation",
       "duration_sec": 90,
@@ -136,6 +144,7 @@
     },
     {
       "id": "stress_watch_comedy",
+      "pack_id": "watch_comedy",
       "title": "Something funny",
       "subtitle": "A few minutes of comedy you enjoy",
       "duration_sec": 600,
@@ -150,6 +159,7 @@
     },
     {
       "id": "stress_brisk_walk_10min",
+      "pack_id": "brisk_walk_10min",
       "title": "Ten-minute walk",
       "subtitle": "A brisk walk at your own pace",
       "duration_sec": 600,
@@ -167,6 +177,7 @@
   "Anxiety": [
     {
       "id": "anxiety_slow_breathing",
+      "pack_id": "slow_breathing",
       "title": "Slow breathing",
       "subtitle": "Breathe in for 4, out for 6",
       "duration_sec": 90,
@@ -188,6 +199,7 @@
     },
     {
       "id": "anxiety_progressive_muscle_relaxation",
+      "pack_id": "progressive_muscle_relaxation",
       "title": "Tense and release",
       "subtitle": "Let go of tension, one area at a time",
       "duration_sec": 90,
@@ -204,6 +216,7 @@
     },
     {
       "id": "anxiety_colouring_structured",
+      "pack_id": "colouring_structured",
       "title": "Colour a mandala",
       "subtitle": "Fill in a pattern, no skill needed",
       "duration_sec": 90,
@@ -219,6 +232,7 @@
     },
     {
       "id": "anxiety_worry_postponement",
+      "pack_id": "worry_postponement",
       "title": "Park the worry",
       "subtitle": "Write it down and set a time to think about it later",
       "duration_sec": 90,
@@ -234,6 +248,7 @@
     },
     {
       "id": "anxiety_self_compassion_exercise",
+      "pack_id": "self_compassion_exercise",
       "title": "Kind words to yourself",
       "subtitle": "A short self-compassion pause",
       "duration_sec": 90,
@@ -249,6 +264,7 @@
     },
     {
       "id": "anxiety_third_person_self_talk",
+      "pack_id": "third_person_self_talk",
       "title": "Talk to yourself like a friend",
       "subtitle": "Use your own name to get some distance",
       "duration_sec": 90,
@@ -264,6 +280,7 @@
     },
     {
       "id": "anxiety_write_plan_todo",
+      "pack_id": "write_plan_todo",
       "title": "Next small step",
       "subtitle": "Turn one worry into a plan",
       "duration_sec": 90,
@@ -279,6 +296,7 @@
     },
     {
       "id": "anxiety_music_listening_calming",
+      "pack_id": "music_listening_calming",
       "title": "Calm music break",
       "subtitle": "Five minutes of music you find soothing",
       "duration_sec": 90,
@@ -294,6 +312,7 @@
     },
     {
       "id": "anxiety_moderate_exercise",
+      "pack_id": "moderate_exercise",
       "title": "Get moving",
       "subtitle": "20 minutes of exercise you enjoy, at a comfortable pace",
       "duration_sec": 1200,
@@ -312,6 +331,7 @@
   "Mental Fatigue": [
     {
       "id": "mental_fatigue_micro_break",
+      "pack_id": "micro_break",
       "title": "Proper micro-break",
       "subtitle": "Step away from the screen for a few minutes",
       "duration_sec": 90,
@@ -327,6 +347,7 @@
     },
     {
       "id": "mental_fatigue_movement_breaks",
+      "pack_id": "movement_breaks",
       "title": "Stand up and move",
       "subtitle": "A few minutes of light movement",
       "duration_sec": 90,
@@ -342,6 +363,7 @@
     },
     {
       "id": "mental_fatigue_brisk_walk_10min",
+      "pack_id": "brisk_walk_10min",
       "title": "Ten-minute walk",
       "subtitle": "A brisk walk for a lift in energy",
       "duration_sec": 600,
@@ -357,6 +379,7 @@
     },
     {
       "id": "mental_fatigue_nap_short",
+      "pack_id": "nap_short",
       "title": "Short power nap",
       "subtitle": "Ten minutes, set an alarm",
       "duration_sec": 600,
@@ -372,6 +395,7 @@
     },
     {
       "id": "mental_fatigue_nature_sitting",
+      "pack_id": "nature_sitting",
       "title": "Green view",
       "subtitle": "Sit somewhere green, or look at trees through a window",
       "duration_sec": 600,
@@ -387,6 +411,7 @@
     },
     {
       "id": "mental_fatigue_daylight_exposure",
+      "pack_id": "daylight_exposure",
       "title": "Get some daylight",
       "subtitle": "Spend a few minutes in bright daylight",
       "duration_sec": 900,
@@ -402,6 +427,7 @@
     },
     {
       "id": "mental_fatigue_stair_walking",
+      "pack_id": "stair_walking",
       "title": "Take the stairs",
       "subtitle": "Ten minutes of easy stair walking",
       "duration_sec": 600,
@@ -417,6 +443,7 @@
     },
     {
       "id": "mental_fatigue_free_dancing",
+      "pack_id": "free_dancing",
       "title": "Dance it out",
       "subtitle": "One upbeat song, move however you like",
       "duration_sec": 90,
@@ -434,6 +461,7 @@
   "Calm Flow": [
     {
       "id": "calm_flow_savoring",
+      "pack_id": "savoring",
       "title": "Savour this moment",
       "subtitle": "Notice what feels good right now",
       "duration_sec": 90,
@@ -449,6 +477,7 @@
     },
     {
       "id": "calm_flow_nature_sitting",
+      "pack_id": "nature_sitting",
       "title": "Green view",
       "subtitle": "Sit somewhere green for a few minutes",
       "duration_sec": 600,
@@ -464,6 +493,7 @@
     },
     {
       "id": "calm_flow_loving_kindness_meditation",
+      "pack_id": "loving_kindness_meditation",
       "title": "Kindness meditation",
       "subtitle": "Send warm wishes to yourself and others",
       "duration_sec": 90,
@@ -479,6 +509,7 @@
     },
     {
       "id": "calm_flow_photography",
+      "pack_id": "photography",
       "title": "Three good photos",
       "subtitle": "Photograph three things you like around you",
       "duration_sec": 300,
@@ -494,6 +525,7 @@
     },
     {
       "id": "calm_flow_gratitude_list",
+      "pack_id": "gratitude_list",
       "title": "Three good things",
       "subtitle": "Note what's going well",
       "duration_sec": 90,
@@ -508,6 +540,7 @@
     },
     {
       "id": "calm_flow_colouring_structured",
+      "pack_id": "colouring_structured",
       "title": "Colour a mandala",
       "subtitle": "Keep the calm going with colour",
       "duration_sec": 90,
@@ -522,6 +555,7 @@
     },
     {
       "id": "calm_flow_awe_walk",
+      "pack_id": "awe_walk",
       "title": "Awe walk",
       "subtitle": "A walk looking for things that amaze you",
       "duration_sec": 900,
@@ -537,6 +571,7 @@
     },
     {
       "id": "calm_flow_slow_breathing",
+      "pack_id": "slow_breathing",
       "title": "Slow breathing",
       "subtitle": "Stay in the calm",
       "duration_sec": 90,
@@ -559,6 +594,7 @@
   "Radiant Joy": [
     {
       "id": "radiant_joy_savoring",
+      "pack_id": "savoring",
       "title": "Savour this moment",
       "subtitle": "Stay with the good feeling a bit longer",
       "duration_sec": 90,
@@ -574,6 +610,7 @@
     },
     {
       "id": "radiant_joy_act_of_kindness",
+      "pack_id": "act_of_kindness",
       "title": "Small kind act",
       "subtitle": "Do one small thing for someone else",
       "duration_sec": 300,
@@ -589,6 +626,7 @@
     },
     {
       "id": "radiant_joy_share_good_news",
+      "pack_id": "share_good_news",
       "title": "Share the good news",
       "subtitle": "Tell someone what went well",
       "duration_sec": 90,
@@ -603,6 +641,7 @@
     },
     {
       "id": "radiant_joy_best_possible_self_writing",
+      "pack_id": "best_possible_self_writing",
       "title": "Best possible future",
       "subtitle": "Write about life going really well",
       "duration_sec": 90,
@@ -618,6 +657,7 @@
     },
     {
       "id": "radiant_joy_gratitude_letter",
+      "pack_id": "gratitude_letter",
       "title": "Thank-you note",
       "subtitle": "Write to someone who helped you",
       "duration_sec": 600,
@@ -633,6 +673,7 @@
     },
     {
       "id": "radiant_joy_explore_while_positive",
+      "pack_id": "explore_while_positive",
       "title": "Try something new",
       "subtitle": "Use the good mood to explore",
       "duration_sec": 600,
@@ -647,6 +688,7 @@
     },
     {
       "id": "radiant_joy_free_dancing",
+      "pack_id": "free_dancing",
       "title": "Dance it out",
       "subtitle": "One upbeat song, move however you like",
       "duration_sec": 90,
@@ -661,6 +703,7 @@
     },
     {
       "id": "radiant_joy_everyday_creative_activity",
+      "pack_id": "everyday_creative_activity",
       "title": "Make something",
       "subtitle": "Draw, write or build anything for fun",
       "duration_sec": 90,

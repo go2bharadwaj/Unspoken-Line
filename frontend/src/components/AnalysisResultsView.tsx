@@ -153,7 +153,7 @@ export const AnalysisResultsView: React.FC<Props> = ({
           Try a practice
         </h3>
         <p className="text-sm text-warmUmber mb-3">
-          Three short exercises for {primaryClass}. Tap one to begin.
+          Short practices for {primaryClass}. Tap one to begin.
         </p>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {(showAllPractices ? activities : activities.slice(0, 3)).map((act) => (
