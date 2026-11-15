@@ -88,3 +88,15 @@ def test_age_reaches_the_prompt_only_when_given(monkeypatch):
         assert (expected in sent) if expected else ("years old" not in sent)
 
     assert client.post("/api/v1/analyze-sketch", json=body | {"age": 9}).status_code == 422
+
+
+def test_a_photo_fits_but_oversized_requests_are_refused(key, monkeypatch):
+    monkeypatch.setattr(main, "FIREBASE_PROJECT_ID", "proj")
+    monkeypatch.setattr(main, "_verify_uid", lambda token: "alice")
+    client = TestClient(main.app)
+    h = {"Authorization": "Bearer t"}
+    photo = base64.b64encode(os.urandom(300_000)).decode()  # ~400k chars, the client's cap
+    sealed = client.post("/api/v1/vault/seal", json={"values": [photo]}, headers=h).json()["values"][0]
+    assert client.post("/api/v1/vault/open", json={"values": [sealed]}, headers=h).json()["values"] == [photo]
+    assert client.post("/api/v1/vault/seal", json={"values": ["x" * 600_001]}, headers=h).status_code == 422
+    assert client.post("/api/v1/vault/seal", json={"values": ["x" * 500_000] * 4}, headers=h).status_code == 422

@@ -21,7 +21,9 @@ import {
   deleteSession,
   getSettings,
   setAge,
-  setShowPhoto,
+  setDiscardPhoto,
+  savePhoto,
+  loadPhoto,
 } from "./lib/firebase";
 import { DrawingTimerRitual } from "./components/DrawingTimerRitual";
 import { PhotoCaptureCard } from "./components/PhotoCaptureCard";
@@ -29,6 +31,7 @@ import { AnalysisResultsView } from "./components/AnalysisResultsView";
 import { HistorySidebar, HISTORY_PANEL_ID } from "./components/HistorySidebar";
 import { sessionToResult } from "./lib/history";
 import { newerVersionDeployed, reloadOnceFor } from "./lib/freshness";
+import { shrinkForStorage } from "./lib/image";
 import { isAdmin } from "./lib/admin";
 import { ActivityPlayerModal } from "./components/ActivityPlayerModal";
 import { ProgressionChart } from "./components/ProgressionChart";
@@ -87,13 +90,14 @@ export default function App() {
   const [resultIsFresh, setResultIsFresh] = useState<boolean>(false);
   // A newer deploy than the one this tab is running (path of its bundle), found when the tab returns
   const [newVersion, setNewVersion] = useState<string | null>(null);
-  // The photo behind the reading just made; memory only, so past readings have none
+  // The photo shown above the open reading: the one just taken (always shown), or one kept with a past reading
   const [sketchPhoto, setSketchPhoto] = useState<{
     sessionId: string;
     url: string;
+    kept: boolean;
   } | null>(null);
-  // Whether the photo just read is shown above the reading, or discarded straight away
-  const [showPhoto, setShowPhotoState] = useState<boolean>(true);
+  // Discard the photo after reading (the default), or keep it, sealed, with the reading
+  const [discardPhoto, setDiscardPhotoState] = useState<boolean>(true);
   // Admin accounts evaluate readings: no personalization, every reading as if from a new person
   // null until checked, so the age question never flashes up for an admin
   const [adminMode, setAdminMode] = useState<boolean | null>(null);
@@ -127,11 +131,11 @@ export default function App() {
       setAgeState(undefined);
       getSettings(currentUser)
         .then((s) => {
-          setShowPhotoState(s.showPhoto);
+          setDiscardPhotoState(s.discardPhoto);
           setAgeState(s.age);
         })
         // Can't tell what they chose, so take the private option; readings go without an age
-        .catch(() => setShowPhotoState(false));
+        .catch(() => setDiscardPhotoState(true));
       setAdminMode(null);
       isAdmin(currentUser).then(setAdminMode, () => setAdminMode(false));
     });
@@ -265,14 +269,13 @@ export default function App() {
     setView("ritual");
   };
 
-  const handleShowPhotoChange = async (on: boolean) => {
-    const before = showPhoto;
-    setShowPhotoState(on);
-    if (!on) setSketchPhoto(null); // discard any photo still held from this visit
+  const handleDiscardPhotoChange = async (on: boolean) => {
+    const before = discardPhoto;
+    setDiscardPhotoState(on);
     try {
-      await setShowPhoto(user, on);
+      await setDiscardPhoto(user, on);
     } catch {
-      setShowPhotoState(before); // not saved, so show what still applies
+      setDiscardPhotoState(before); // not saved, so show what still applies
     }
   };
 
@@ -367,11 +370,23 @@ export default function App() {
             });
         }
         setCurrentSessionId(savedId);
-        setSketchPhoto(
-          showPhoto
-            ? { sessionId: savedId, url: `data:image/jpeg;base64,${base64}` }
-            : null,
-        );
+        // Always shown on the first view of a reading; kept afterwards only if they turned discarding off
+        const keep = saved && Boolean(user) && !discardPhoto;
+        setSketchPhoto({
+          sessionId: savedId,
+          url: `data:image/jpeg;base64,${base64}`,
+          kept: keep,
+        });
+        if (keep && user) {
+          shrinkForStorage(base64)
+            .then((small) => savePhoto(user, savedId, small))
+            .catch(() =>
+              // Not kept after all: say so under the photo instead of promising it's saved
+              setSketchPhoto((p) =>
+                p?.sessionId === savedId ? { ...p, kept: false } : p,
+              ),
+            );
+        }
         setAnalysisResult(res);
         setResultIsFresh(true);
         startTransition(() => {
@@ -426,6 +441,19 @@ export default function App() {
   };
 
   const showPastReading = (session: StoredSession) => {
+    // A photo kept with this reading loads after the text; none if it was discarded
+    setSketchPhoto(null);
+    loadPhoto(user, session.id)
+      .then(
+        (photo) =>
+          photo &&
+          setSketchPhoto({
+            sessionId: session.id,
+            url: `data:image/jpeg;base64,${photo}`,
+            kept: true,
+          }),
+      )
+      .catch(() => {});
     setAnalysisResult(sessionToResult(session));
     setResultIsFresh(false);
     setCurrentSessionId(session.id);
@@ -664,12 +692,11 @@ export default function App() {
                 {/* Privacy Badge */}
                 <div className="w-full pb-6">
                   {/* Notes belong to an account; without Firebase (local dev) the guest keeps them locally */}
+                  {/* Keeping photos needs an account (sealed in Firestore), so guests don't get the switch */}
                   <PrivacyBadge
-                    showPhoto={showPhoto}
-                    onShowPhotoChange={
-                      user || !firebaseEnabled
-                        ? handleShowPhotoChange
-                        : undefined
+                    discardPhoto={discardPhoto}
+                    onDiscardPhotoChange={
+                      user ? handleDiscardPhotoChange : undefined
                     }
                   />
                 </div>
@@ -823,9 +850,9 @@ export default function App() {
                 onOpenActivity={handleOpenActivity}
                 onDone={handleDoneResults}
                 streamText={resultIsFresh}
-                photoUrl={
+                photo={
                   sketchPhoto?.sessionId === currentSessionId
-                    ? sketchPhoto.url
+                    ? sketchPhoto
                     : undefined
                 }
                 rating={currentSession?.rating}

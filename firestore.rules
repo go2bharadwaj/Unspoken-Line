@@ -10,12 +10,12 @@ service cloud.firestore {
       return v is string && v.size() <= maxSize && v.matches('^v1:[A-Za-z0-9+/]+=*$');
     }
 
-    // Account settings: whether the photo is shown with the reading, and the sealed profile (age)
+    // Account settings: whether photos are discarded after reading, and the sealed profile (age)
     match /users/{uid} {
       allow read: if isOwner(uid);
       allow create, update: if isOwner(uid)
-        && request.resource.data.keys().hasOnly(['show_photo', 'profile'])
-        && (!('show_photo' in request.resource.data) || request.resource.data.show_photo is bool)
+        && request.resource.data.keys().hasOnly(['discard_photo', 'profile'])
+        && (!('discard_photo' in request.resource.data) || request.resource.data.discard_photo is bool)
         && (!('profile' in request.resource.data) || isSealed(request.resource.data.profile, 1000));
     }
 
@@ -51,6 +51,17 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny(['scores', 'primary_class', 'reading_text', 'progression_text', 'trend_text', 'evidence'])
         && (!('summary' in request.resource.data) || isSealed(request.resource.data.summary, 8000))
         && (!('rating' in request.resource.data) || isSealed(request.resource.data.rating, 100));
+    }
+
+    // A kept photo, sealed, one per session (same id). Only for a session that exists; written once.
+    // The app deletes it together with its session, and with Clear My History.
+    match /users/{uid}/photos/{sessionId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && exists(/databases/$(database)/documents/users/$(uid)/sessions/$(sessionId))
+        && request.resource.data.keys().hasOnly(['sealed', 'created_at'])
+        && request.resource.data.created_at == request.time
+        && isSealed(request.resource.data.sealed, 700000);
     }
 
     match /{document=**} {

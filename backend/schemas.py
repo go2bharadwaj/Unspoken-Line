@@ -117,15 +117,20 @@ class SummarizeReadingResponse(BaseModel):
     summary: str
 
 
-# Sized for one user's whole history in a single call (listSessions keeps the newest 60 sessions)
+# Sized for one user's whole history in a single call (listSessions keeps the newest 60 sessions),
+# or one saved photo (the client shrinks photos to PHOTO_MAX_BASE64 = 400k chars before sealing)
+VAULT_MAX_VALUE_CHARS = 600_000
+VAULT_MAX_TOTAL_CHARS = 1_500_000
+
+
 class VaultRequest(BaseModel):
     values: list[str] = Field(..., max_length=500)
 
     @field_validator("values")
     @classmethod
-    def _each_value_bounded(cls, values: list[str]) -> list[str]:
-        if any(len(v) > 80_000 for v in values):
-            raise ValueError("value too long")
+    def _bounded(cls, values: list[str]) -> list[str]:
+        if any(len(v) > VAULT_MAX_VALUE_CHARS for v in values) or sum(map(len, values)) > VAULT_MAX_TOTAL_CHARS:
+            raise ValueError("values too long")
         return values
 
 
