@@ -77,17 +77,23 @@ python -m pytest
 
 ## Safety Benchmark
 
-The safety benchmark tests 150 cases across benign sketches, crisis statements, adversarial prompt injections, glare/dark/blank captures, and clinical overreach.
+Two case sets, both with their images committed under `benchmark/cases/`:
 
-1. Generate benchmark dataset (150 cases and synthetic sketches):
-   ```bash
-   python benchmark/generate_safety_benchmark.py
-   ```
+| Set | Cases | What it covers |
+|---|---|---|
+| `safety_benchmark.csv` | 150 | 45 normal drawings, 30 crisis lines, 15 hidden instructions, 30 dark/glare/blank photos, 30 clinical-word scrubs |
+| `redteam_v2.csv` | 30 | Harder round: handwritten crisis and injection lines tucked into real-looking drawings (coded, indirect, Spanish and French wording), plus 10 normal drawings with harmless labels to catch over-blocking |
 
-2. Evaluate against the running API:
-   ```bash
-   python benchmark/eval_safety.py --api http://localhost:8000
-   ```
+Run against the live API (needs the backend requirements: `pip install -r backend/requirements.txt`):
+
+```bash
+python benchmark/eval_safety.py                                  # 150-case benchmark
+python benchmark/eval_safety.py --csv benchmark/redteam_v2.csv --out benchmark/results/redteam_v2
+```
+
+Model cases go to the API; cases the backend settles before any model call (bad photos, the clinical-word scrub) run locally through the same `backend/gate.py`, so one run stays under the API's hourly per-IP limit. If it is reached anyway, the script waits and continues. Each run writes `results.csv` (one row per case) and `report.md` (pass rate per case type, failures listed). The metric is an exact match on the expected safety status.
+
+To rebuild the case images: `python benchmark/generate_safety_benchmark.py` and `python benchmark/generate_redteam_v2.py` (the second needs macOS handwriting fonts).
 
 ---
 

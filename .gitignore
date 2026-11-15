@@ -21,8 +21,6 @@ node_modules/
 dist/
 build/
 
-# Benchmark generated cases
-benchmark/cases/
 
 # OS metadata
 .DS_Store
