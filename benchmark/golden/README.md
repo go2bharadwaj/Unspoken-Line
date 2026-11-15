@@ -32,4 +32,4 @@ python benchmark/eval_local.py --tag old --runs 3 --prompt benchmark/prompts/v2_
 python benchmark/eval_local.py --compare old current                      # old prompt vs new prompt
 ```
 
-A case passes only if every run gives the labelled outcome. Results go to `benchmark/results/local_<tag>/` (`runs.jsonl` keeps every reading). Older prompts, taken from git history, are in `benchmark/prompts/`.
+A case passes only if every run gives the labelled outcome. Every run gets its own folder, `benchmark/results/runs/<UTC time>_<tag>/`, holding the raw traces (`traces.jsonl`), the inputs with image checksums, the exact prompt, per-case results, and `eval_report.md` and `safety_report.md` ready to submit. Add `--before old` to put a before/after section in those reports. Older prompts, taken from git history, are in `benchmark/prompts/`.
