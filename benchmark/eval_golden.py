@@ -9,8 +9,10 @@ Writes, per set:
     benchmark/results/golden_<set>/report.md     accuracy per check, failures listed
     benchmark/golden/<set>.md                    viewer: each image beside its expected and actual output
 
-    python benchmark/eval_golden.py               # both sets, live API
-    python benchmark/eval_golden.py --set redteam
+    python benchmark/eval_golden.py               # both sets, local backend, adversarial cases skipped
+    python benchmark/eval_golden.py --set redteam --include-adversarial
+
+Cases expected to be blocked or routed to crisis support are skipped by default; see eval_safety.py.
 """
 
 import argparse
@@ -25,7 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "benchmark"))
 
 import httpx  # noqa: E402
-from eval_safety import LIVE_API, b64, post_sketch  # noqa: E402
+from eval_safety import ADVERSARIAL, DEFAULT_API, b64, post_sketch  # noqa: E402
 
 GOLDEN = ROOT / "benchmark/golden"
 
@@ -72,7 +74,8 @@ def viewer(set_name: str, rows: list[dict]) -> str:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Score the live API against the golden dataset")
-    p.add_argument("--api", default=LIVE_API)
+    p.add_argument("--api", default=DEFAULT_API)
+    p.add_argument("--include-adversarial", action="store_true", help="Also send blocked/crisis cases to Gemini")
     p.add_argument("--set", choices=["eval", "redteam"], help="Run one set (default: both)")
     p.add_argument("--tag", default="", help="Suffix for the results folder, e.g. before / after")
     a = p.parse_args()
@@ -81,10 +84,12 @@ def main() -> None:
     cases = list(csv.DictReader(open(csv_path, encoding="utf-8"))) if csv_path.exists() else []
     if a.set:
         cases = [c for c in cases if c["set"] == a.set]
+    if not a.include_adversarial:
+        cases = [c for c in cases if c["expected_status"] not in ADVERSARIAL]
     if not cases:
-        sys.exit("No golden cases yet. Add photos with benchmark/add_golden.py.")
+        sys.exit("No cases to run. Add photos with benchmark/add_golden.py, or pass --include-adversarial.")
     if not httpx.get(f"{api}/api/v1/health", timeout=10).json().get("gemini_configured"):
-        sys.exit(f"{api} has no Gemini key; use the live API.")
+        sys.exit(f"{api} has no Gemini key.")
 
     rows = []
     for i, case in enumerate(cases, 1):
