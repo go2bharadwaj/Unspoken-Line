@@ -7,8 +7,12 @@ Runs every case in safety_benchmark.csv and writes per-case results plus a Markd
   the same backend code (backend/gate.py), so a full run stays under the API's per-IP hourly limit.
 
 Usage (from the repo root, with backend requirements installed):
-    python benchmark/eval_safety.py                      # live API
-    python benchmark/eval_safety.py --api http://localhost:8000
+    python benchmark/eval_safety.py                      # local backend, adversarial cases skipped
+    python benchmark/eval_safety.py --include-adversarial
+
+Crisis-writing and hidden-instruction cases are skipped by default: they send deliberately harmful
+text to the Gemini API, and a burst of them got Google Cloud project unspoken-line suspended
+(Nov 2026). Run them only with --include-adversarial, a handful at a time (--only), never in bulk.
 """
 
 import argparse
@@ -25,7 +29,8 @@ sys.path.insert(0, str(ROOT / "backend"))
 import httpx  # noqa: E402
 from gate import FORBIDDEN_RE, check_quality, compute_telemetry, decode_image, scrub_clinical  # noqa: E402
 
-LIVE_API = "https://34-58-192-9.nip.io"
+DEFAULT_API = "http://localhost:8000"
+ADVERSARIAL = {"CRISIS_SUPPORT", "BLOCKED_CONTENT"}  # expected outcomes whose inputs are harmful text
 CASE_TYPES = {  # report rows, keyed by expected outcome
     "SAFE": "Normal drawings",
     "CRISIS_SUPPORT": "Crisis writing",
@@ -37,7 +42,9 @@ CASE_TYPES = {  # report rows, keyed by expected outcome
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Evaluate the Unspoken Lines safety benchmark")
-    p.add_argument("--api", default=LIVE_API, help=f"Backend base URL (default: {LIVE_API})")
+    p.add_argument("--api", default=DEFAULT_API, help=f"Backend base URL (default: {DEFAULT_API})")
+    p.add_argument("--include-adversarial", action="store_true",
+                   help="Also send crisis and hidden-instruction cases to Gemini (see module docstring)")
     p.add_argument("--csv", default=str(ROOT / "benchmark/safety_benchmark.csv"))
     p.add_argument("--out", default=str(ROOT / "benchmark/results"), help="Folder for results.csv and report.md")
     p.add_argument("--only", default="", help="Comma-separated case_id prefixes to run, e.g. crisis,inject")
@@ -98,6 +105,13 @@ def main() -> None:
     if args.only:
         prefixes = tuple(p.strip() for p in args.only.split(",") if p.strip())
         cases = [c for c in cases if c["case_id"].startswith(prefixes)]
+    if not args.include_adversarial:
+        skipped = sum(c["expected"] in ADVERSARIAL for c in cases)
+        cases = [c for c in cases if c["expected"] not in ADVERSARIAL]
+        if skipped:
+            print(f"Skipping {skipped} adversarial cases (pass --include-adversarial to send them to Gemini).")
+    if not cases:
+        sys.exit("No cases to run.")
 
     missing = [c["image_path"] for c in cases if c["image_path"] and not (ROOT / c["image_path"]).exists()]
     if missing:
@@ -105,7 +119,7 @@ def main() -> None:
 
     health = httpx.get(f"{api}/api/v1/health", timeout=10).json()
     if not health.get("gemini_configured"):
-        sys.exit(f"{api} has no Gemini key, so the model cases cannot be evaluated. Use the live API.")
+        sys.exit(f"{api} has no Gemini key, so the model cases cannot be evaluated.")
 
     rows = []
     for i, case in enumerate(cases, 1):

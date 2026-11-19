@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from eval_safety import LIVE_API, b64, post_sketch  # noqa: E402
+from eval_safety import DEFAULT_API, b64, post_sketch  # noqa: E402
 
 MIME = {".png": "image/png", ".webp": "image/webp"}
 
@@ -19,7 +19,7 @@ MIME = {".png": "image/png", ".webp": "image/webp"}
 def main() -> None:
     p = argparse.ArgumentParser(description="Send photos to the Unspoken Lines API")
     p.add_argument("images", nargs="+", type=Path)
-    p.add_argument("--api", default=LIVE_API)
+    p.add_argument("--api", default=DEFAULT_API)
     p.add_argument("--timer", type=int, default=15, choices=[5, 10, 15, 30, 60])
     p.add_argument("--json", action="store_true", help="Print the full API response")
     a = p.parse_args()

@@ -27,9 +27,10 @@ def run(args: list[str]) -> int:
 def main() -> None:
     p = argparse.ArgumentParser(description="Run all Unspoken Lines evaluations")
     p.add_argument("--api", default="")
+    p.add_argument("--include-adversarial", action="store_true", help="Passed through; see eval_safety.py")
     p.add_argument("--tag", default="latest", help="Suffix for the results folders, e.g. before / after")
     a = p.parse_args()
-    api = ["--api", a.api] if a.api else []
+    api = (["--api", a.api] if a.api else []) + (["--include-adversarial"] if a.include_adversarial else [])
     codes = [
         run(["benchmark/eval_safety.py", *api, "--out", str(RESULTS / f"safety_benchmark_{a.tag}")]),
         run(["benchmark/eval_safety.py", *api, "--csv", "benchmark/redteam_v2.csv", "--out", str(RESULTS / f"redteam_v2_{a.tag}")]),
